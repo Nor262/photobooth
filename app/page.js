@@ -123,7 +123,7 @@ export default function Home() {
           transition={{ duration: 0.8 }}
           className="w-full"
         >
-          <h1 className="text-5xl font-bold mb-6 text-gray-800">Photobooth</h1>
+          <h1 className="text-5xl font-bold mb-6 text-gray-800">Photobooth by Nor</h1>
           <p className="text-xl text-gray-600 mb-10 max-w-md mx-auto">
             Capture beautiful memories with our modern photobooth experience
           </p>
