@@ -801,9 +801,10 @@ function BackgroundContent() {
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Photo Strip with preview area */}
-          <div className="flex-1 flex justify-center items-center overflow-auto p-4">
+        {/* Photo Strip with preview area */}
+        <div className="flex-1 flex justify-center items-center overflow-auto p-4">
             <div
               ref={photoStripRef}
               className="relative rounded-lg shadow-sm transition-all duration-300 flex flex-col justify-center items-center"
@@ -987,10 +988,10 @@ function BackgroundContent() {
                   )}
                 </>
               )}
-            </div>
           </div>
         </div>
       </div>
+    </div>
     </main>
   );
 }
