@@ -2,9 +2,187 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
-import { ArrowLeft, Download, Share, Calendar, Plus, Sliders, Move, Trash, Trash2, MousePointer, Palette, Maximize, Minimize, Image, FileImage, Sticker, Pencil, Eraser, RotateCcw } from "lucide-react";
+import { ArrowLeft, Download, Share, Calendar, Plus, Sliders, Move, Trash, Trash2, MousePointer, Palette, Maximize, Minimize, Image, FileImage, Sticker, Pencil, Eraser, RotateCcw, X } from "lucide-react";
 import html2canvas from 'html2canvas';
 import NextImage from "next/image"; // Import Next.js Image component
+
+// Large collection of emojis for stickers
+const ALL_EMOJIS = [
+  // Smileys & Emotion
+  { char: "😀", name: "grinning" }, { char: "😃", name: "smile" }, { char: "😄", name: "happy" }, { char: "😁", name: "grin" },
+  { char: "😆", name: "laughing" }, { char: "😅", name: "sweat smile" }, { char: "🤣", name: "rofl" }, { char: "😂", name: "joy" },
+  { char: "🙂", name: "slightly smile" }, { char: "🙃", name: "upside down" }, { char: "😉", name: "wink" }, { char: "😊", name: "blush" },
+  { char: "😇", name: "halo" }, { char: "🥰", name: "heart eyes" }, { char: "😍", name: "heart eyes" }, { char: "🤩", name: "star struck" },
+  { char: "😘", name: "kiss" }, { char: "😗", name: "kissing" }, { char: "😚", name: "kissing" }, { char: "😙", name: "kissing" },
+  { char: "😋", name: "yum" }, { char: "😛", name: "tongue" }, { char: "😜", name: "wink tongue" }, { char: "🤪", name: "zany" },
+  { char: "😝", name: "squint tongue" }, { char: "🤑", name: "money" }, { char: "🤗", name: "hug" }, { char: "🤭", name: "shushing" },
+  { char: "🥱", name: "yawning" }, { char: "🤫", name: "quiet" }, { char: "🤔", name: "thinking" }, { char: "🤐", name: "zipper" },
+  { char: "🤨", name: "eyebrow" }, { char: "😐", name: "neutral" }, { char: "😑", name: "expressionless" }, { char: "😶", name: "no mouth" },
+  { char: "😏", name: "smirk" }, { char: "😒", name: "unamused" }, { char: "🙄", name: "rolling eyes" }, { char: "😬", name: "grimace" },
+  { char: "🤥", name: "liar" }, { char: "😌", name: "relieved" }, { char: "😔", name: "pensive" }, { char: "😪", name: "sleepy" },
+  { char: "😴", name: "sleeping" }, { char: "😷", name: "mask" }, { char: "🤒", name: "fever" }, { char: "🤕", name: "bandage" },
+  { char: "🤢", name: "nauseated" }, { char: "🤮", name: "vomit" }, { char: "🤧", name: "sneeze" }, { char: "🥵", name: "hot" },
+  { char: "🥶", name: "cold" }, { char: "🥴", name: "woozy" }, { char: "😵", name: "dizzy" }, { char: "🤯", name: "explode" },
+  { char: "🤠", name: "cowboy" }, { char: "🥳", name: "party" }, { char: "😎", name: "cool" }, { char: "🤓", name: "nerd" },
+  { char: "🧐", name: "monocle" }, { char: "😕", name: "confused" }, { char: "😟", name: "worried" }, { char: "🙁", name: "frown" },
+  { char: "😮", name: "open mouth" }, { char: "😯", name: "hushed" }, { char: "😲", name: "astonished" }, { char: "😳", name: "flushed" },
+  { char: "🥺", name: "pleading" }, { char: "😦", name: "frowning" }, { char: "😧", name: "anguished" }, { char: "😨", name: "fearful" },
+  { char: "😰", name: "anxious" }, { char: "😥", name: "sad sweat" }, { char: "😢", name: "cry" }, { char: "😭", name: "sob" },
+  { char: "😱", name: "scared" }, { char: "😖", name: "confounded" }, { char: "😣", name: "persevere" }, { char: "😞", name: "disappointed" },
+  { char: "😓", name: "sweat" }, { char: "😩", name: "weary" }, { char: "😫", name: "tired" }, { char: "🥱", name: "yawn" },
+  { char: "😤", name: "triumph" }, { char: "😡", name: "rage" }, { char: "😠", name: "angry" }, { char: "🤬", name: "curse" },
+  { char: "😈", name: "devil" }, { char: "👿", name: "devil" }, { char: "💀", name: "skull" }, { char: "💩", name: "poop" },
+  { char: "🤡", name: "clown" }, { char: "👹", name: "ogre" }, { char: "👺", name: "goblin" }, { char: "👻", name: "ghost" },
+  { char: "👽", name: "alien" }, { char: "👾", name: "game" }, { char: "🤖", name: "robot" }, { char: "😺", name: "cat" },
+  { char: "😸", name: "cat" }, { char: "😻", name: "cat heart" }, { char: "😼", name: "cat smirk" }, { char: "😽", name: "cat kiss" },
+  { char: "🙀", name: "cat scream" }, { char: "😿", name: "cat cry" }, { char: "😾", name: "cat angry" },
+  // Hearts & Symbols
+  { char: "💘", name: "heart arrow" }, { char: "💝", name: "heart gift" }, { char: "💖", name: "sparkle heart" }, { char: "💗", name: "grow heart" },
+  { char: "💓", name: "beat heart" }, { char: "💞", name: "revolve heart" }, { char: "💕", name: "two hearts" }, { char: "💟", name: "heart deco" },
+  { char: "❣️", name: "heart bang" }, { char: "💔", name: "broken heart" }, { char: "❤️", name: "red heart" }, { char: "🧡", name: "orange heart" },
+  { char: "💛", name: "yellow heart" }, { char: "💚", name: "green heart" }, { char: "💙", name: "blue heart" }, { char: "💜", name: "purple heart" },
+  { char: "🤎", name: "brown heart" }, { char: "🖤", name: "black heart" }, { char: "🤍", name: "white heart" }, { char: "💯", name: "100" },
+  { char: "💢", name: "anger" }, { char: "💥", name: "boom" }, { char: "💫", name: "dizzy" }, { char: "💦", name: "splat" },
+  { char: "💨", name: "dash" }, { char: "🕳️", name: "hole" }, { char: "💣", name: "bomb" }, { char: "💬", name: "speech" },
+  { char: "👁️‍🗨️", name: "eye speech" }, { char: "🗨️", name: "speech" }, { char: "🗯️", name: "shout" }, { char: "💭", name: "thought" },
+  { char: "💤", name: "zzz" },
+  // Animals & Nature
+  { char: "🙈", name: "monkey see" }, { char: "🙉", name: "monkey hear" }, { char: "🙊", name: "monkey speak" }, { char: "🐒", name: "monkey" },
+  { char: "🦍", name: "gorilla" }, { char: "🦧", name: "orangutan" }, { char: "🐶", name: "dog" }, { char: "🐕", name: "dog" },
+  { char: "🦮", name: "guide dog" }, { char: "🐩", name: "poodle" }, { char: "🐺", name: "wolf" }, { char: "🦊", name: "fox" },
+  { char: "🦝", name: "raccoon" }, { char: "🐱", name: "cat" }, { char: "🐈", name: "cat" }, { char: "🦁", name: "lion" },
+  { char: "🐯", name: "tiger" }, { char: "🐅", name: "tiger" }, { char: "🐆", name: "leopard" }, { char: "🐴", name: "horse" },
+  { char: "🐎", name: "horse" }, { char: "🦄", name: "unicorn" }, { char: "🦓", name: "zebra" }, { char: "🦌", name: "deer" },
+  { char: "🐮", name: "cow" }, { char: "🐂", name: "ox" }, { char: "🐃", name: "buffalo" }, { char: "🐄", name: "cow" },
+  { char: "🐷", name: "pig" }, { char: "🐖", name: "pig" }, { char: "🐗", name: "boar" }, { char: "🐽", name: "pig nose" },
+  { char: "🐏", name: "ram" }, { char: "🐑", name: "sheep" }, { char: "🐐", name: "goat" }, { char: "🐪", name: "camel" },
+  { char: "🐫", name: "camel" }, { char: "🦙", name: "llama" }, { char: "🦒", name: "giraffe" }, { char: "🐘", name: "elephant" },
+  { char: "🦏", name: "rhino" }, { char: "🦛", name: "hippo" }, { char: "🐭", name: "mouse" }, { char: "🐁", name: "mouse" },
+  { char: "🐀", name: "rat" }, { char: "🐹", name: "hamster" }, { char: "🐰", name: "rabbit" }, { char: "🐇", name: "rabbit" },
+  { char: "🐿️", name: "chipmunk" }, { char: "🦔", name: "hedgehog" }, { char: "🦇", name: "bat" }, { char: "🐻", name: "bear" },
+  { char: "🐨", name: "koala" }, { char: "🐼", name: "panda" }, { char: "🦥", name: "sloth" }, { char: "🦦", name: "otter" },
+  { char: "🦨", name: "skunk" }, { char: "🦘", name: "kangaroo" }, { char: "🦡", name: "badger" }, { char: "🐾", name: "paw" },
+  { char: "🦃", name: "turkey" }, { char: "🐔", name: "chicken" }, { char: "🐓", name: "rooster" }, { char: "🐣", name: "chick" },
+  { char: "🐤", name: "chick" }, { char: "🐥", name: "chick" }, { char: "🐦", name: "bird" }, { char: "🐧", name: "penguin" },
+  { char: "🕊️", name: "dove" }, { char: "🦅", name: "eagle" }, { char: "🦆", name: "duck" }, { char: "🦢", name: "swan" },
+  { char: "🦉", name: "owl" }, { char: "🦩", name: "flamingo" }, { char: "🦚", name: "peacock" }, { char: "🦜", name: "parrot" },
+  { char: "🐸", name: "frog" }, { char: "🐊", name: "crocodile" }, { char: "🐢", name: "turtle" }, { char: "🦎", name: "lizard" },
+  { char: "🐍", name: "snake" }, { char: "🐲", name: "dragon" }, { char: "🐉", name: "dragon" }, { char: "🦕", name: "dino" },
+  { char: "🦖", name: "dino" }, { char: "🐳", name: "whale" }, { char: "🐋", name: "whale" }, { char: "🐬", name: "dolphin" },
+  { char: "🐟", name: "fish" }, { char: "🐠", name: "fish" }, { char: "🐡", name: "fish" }, { char: "🦈", name: "shark" },
+  { char: "🐙", name: "octopus" }, { char: "🐚", name: "shell" }, { char: "🐌", name: "snail" }, { char: "🦋", name: "butterfly" },
+  { char: "🐛", name: "bug" }, { char: "🐜", name: "ant" }, { char: "🐝", name: "bee" }, { char: "🐞", name: "ladybug" },
+  { char: "🦗", name: "cricket" }, { char: "🕷️", name: "spider" }, { char: "🕸️", name: "spider web" }, { char: "🦂", name: "scorpion" },
+  { char: "🦟", name: "mosquito" }, { char: "🦠", name: "germ" }, { char: "💐", name: "bouquet" }, { char: "🌸", name: "cherry blossom" },
+  { char: "💮", name: "flower" }, { char: "🏵️", name: "rosette" }, { char: "🌹", name: "rose" }, { char: "🥀", name: "withered flower" },
+  { char: "🌺", name: "hibiscus" }, { char: "🌻", name: "sunflower" }, { char: "🌼", name: "blossom" }, { char: "🌷", name: "tulip" },
+  { char: "🌱", name: "seedling" }, { char: "🌲", name: "evergreen" }, { char: "🌳", name: "deciduous" }, { char: "🌴", name: "palm" },
+  { char: "🌵", name: "cactus" }, { char: "🌾", name: "sheaf" }, { char: "🌿", name: "herb" }, { char: "☘️", name: "clover" },
+  { char: "🍀", name: "four leaf clover" }, { char: "🍁", name: "maple" }, { char: "🍂", name: "fallen leaf" }, { char: "🍃", name: "leaf" },
+  // Food & Drink
+  { char: "🍏", name: "apple" }, { char: "🍎", name: "apple" }, { char: "🍐", name: "pear" }, { char: "🍊", name: "orange" },
+  { char: "🍋", name: "lemon" }, { char: "🍌", name: "banana" }, { char: "🍉", name: "watermelon" }, { char: "🍇", name: "grapes" },
+  { char: "🍓", name: "strawberry" }, { char: "🍈", name: "melon" }, { char: "🍒", name: "cherries" }, { char: "🍑", name: "peach" },
+  { char: "🥭", name: "mango" }, { char: "🍍", name: "pineapple" }, { char: "🥥", name: "coconut" }, { char: "🥝", name: "kiwi" },
+  { char: "🍅", name: "tomato" }, { char: "🍆", name: "eggplant" }, { char: "🥑", name: "avocado" }, { char: "🥦", name: "broccoli" },
+  { char: "🥬", name: "leafy green" }, { char: "🥒", name: "cucumber" }, { char: "🌶️", name: "chili" }, { char: "🌽", name: "corn" },
+  { char: "🥕", name: "carrot" }, { char: "🧄", name: "garlic" }, { char: "🧅", name: "onion" }, { char: "🥔", name: "potato" },
+  { char: "🍠", name: "sweet potato" }, { char: "🥐", name: "croissant" }, { char: "🥯", name: "bagel" }, { char: "🍞", name: "bread" },
+  { char: "🥖", name: "baguette" }, { char: "🥨", name: "pretzel" }, { char: "🧀", name: "cheese" }, { char: "🥚", name: "egg" },
+  { char: "🍳", name: "cooking" }, { char: "🧈", name: "butter" }, { char: "🥞", name: "pancakes" }, { char: "🧇", name: "waffle" },
+  { char: "🥓", name: "bacon" }, { char: "🥩", name: "meat" }, { char: "🍗", name: "poultry" }, { char: "🍖", name: "meat" },
+  { char: "🦴", name: "bone" }, { char: "🌭", name: "hotdog" }, { char: "🍔", name: "hamburger" }, { char: "🍟", name: "fries" },
+  { char: "🍕", name: "pizza" }, { char: "🥪", name: "sandwich" }, { char: "🥙", name: "pita" }, { char: "🧆", name: "falafel" },
+  { char: "🌮", name: "taco" }, { char: "🌯", name: "burrito" }, { char: "🥗", name: "salad" }, { char: "🥘", name: "paella" },
+  { char: "🍝", name: "spaghetti" }, { char: "🍜", name: "noodles" }, { char: "🍲", name: "stew" }, { char: "🍛", name: "curry" },
+  { char: "🍣", name: "sushi" }, { char: "🍱", name: "bento" }, { char: "🥟", name: "dumpling" }, { char: "🦪", name: "oyster" },
+  { char: "🍤", name: "shrimp" }, { char: "🍙", name: "rice ball" }, { char: "🍚", name: "rice" }, { char: "🍘", name: "rice cracker" },
+  { char: "🍥", name: "fish cake" }, { char: "🥠", name: "fortune cookie" }, { char: "🥮", name: "moon cake" }, { char: "🍢", name: "oden" },
+  { char: "🍡", name: "dango" }, { char: "🍧", name: "shaved ice" }, { char: "🍨", name: "ice cream" }, { char: "🍦", name: "soft serve" },
+  { char: "🥧", name: "pie" }, { char: "🧁", name: "cupcake" }, { char: "🍰", name: "cake" }, { char: "🎂", name: "birthday" },
+  { char: "🍮", name: "custard" }, { char: "🍭", name: "lollipop" }, { char: "🍬", name: "candy" }, { char: "🍫", name: "chocolate" },
+  { char: "🍿", name: "popcorn" }, { char: "🍩", name: "doughnut" }, { char: "🍪", name: "cookie" }, { char: "🌰", name: "chestnut" },
+  { char: "🥜", name: "peanuts" }, { char: "🍯", name: "honey" }, { char: "🥛", name: "milk" }, { char: "☕", name: "coffee" },
+  { char: "🍵", name: "tea" }, { char: "🧃", name: "juice" }, { char: "🥤", name: "soda" }, { char: "🍶", name: "sake" },
+  { char: "🍺", name: "beer" }, { char: "🍻", name: "beers" }, { char: "🥂", name: "cheers" }, { char: "🍷", name: "wine" },
+  { char: "🥃", name: "whiskey" }, { char: "🍸", name: "cocktail" }, { char: "🍹", name: "drink" }, { char: "🧉", name: "mate" },
+  { char: "🍾", name: "champagne" }, { char: "🧊", name: "ice" }, { char: "🥤", name: "cup" },
+  // Activities & Objects
+  { char: "⚽", name: "soccer" }, { char: "🏀", name: "basketball" }, { char: "🏈", name: "football" }, { char: "⚾", name: "baseball" },
+  { char: "🎾", name: "tennis" }, { char: "🏐", name: "volleyball" }, { char: "🏉", name: "rugby" }, { char: "🏓", name: "ping pong" },
+  { char: "🏸", name: "badminton" }, { char: "🥅", name: "goal" }, { char: "🏒", name: "hockey" }, { char: "🏑", name: "hockey" },
+  { char: "🏏", name: "cricket" }, { char: "⛳", name: "golf" }, { char: "🏹", name: "archery" }, { char: "🎣", name: "fishing" },
+  { char: "🤿", name: "diving" }, { char: "🥊", name: "boxing" }, { char: "🥋", name: "martial arts" }, { char: "⛸️", name: "skate" },
+  { char: "🎿", name: "ski" }, { char: "🛷", name: "sled" }, { char: "🥌", name: "curling" }, { char: "🎯", name: "dart" },
+  { char: "🪀", name: "yo-yo" }, { char: "🪁", name: "kite" }, { char: "🎱", name: "billiards" }, { char: "🔮", name: "crystal ball" },
+  { char: "🧿", name: "nazar" }, { char: "🎮", name: "video game" }, { char: "🕹️", name: "joystick" }, { char: "🎰", name: "slot machine" },
+  { char: "🎲", name: "die" }, { char: "🧩", name: "puzzle" }, { char: "🧸", name: "teddy bear" }, { char: "♠️", name: "spades" },
+  { char: "♥️", name: "hearts" }, { char: "♦️", name: "diamonds" }, { char: "♣️", name: "clubs" }, { char: "♟️", name: "chess" },
+  { char: "🃏", name: "joker" }, { char: "🀄", name: "mahjong" }, { char: "🎴", name: "flower cards" }, { char: "🎭", name: "mask" },
+  { char: "🖼️", name: "picture" }, { char: "🎨", name: "art" }, { char: "🧵", name: "thread" }, { char: "🧶", name: "yarn" },
+  { char: "🛍️", name: "shopping" }, { char: "💄", name: "lipstick" }, { char: "💎", name: "gem" }, { char: "💍", name: "ring" },
+  { char: "🕶️", name: "sunglasses" }, { char: "👓", name: "glasses" }, { char: "👜", name: "handbag" }, { char: "💼", name: "briefcase" },
+  { char: "🎒", name: "backpack" }, { char: "👞", name: "shoe" }, { char: "👟", name: "sneaker" }, { char: "👠", name: "heel" },
+  { char: "👡", name: "sandal" }, { char: "👢", name: "boot" }, { char: "👑", name: "crown" }, { char: "👒", name: "hat" },
+  { char: "🎩", name: "top hat" }, { char: "🎓", name: "graduation" }, { char: "🧢", name: "cap" }, { char: "⛑️", name: "helmet" },
+  { char: "💄", name: "makeup" }, { char: "🌂", name: "umbrella" }, { char: "☂️", name: "umbrella" },
+  // Travel & Places
+  { char: "🌍", name: "earth" }, { char: "🌎", name: "earth" }, { char: "🌏", name: "earth" }, { char: "🌐", name: "globe" },
+  { char: "🗺️", name: "map" }, { char: "🗾", name: "japan" }, { char: "🧭", name: "compass" }, { char: "🏔️", name: "mountain" },
+  { char: "⛰️", name: "mountain" }, { char: "🌋", name: "volcano" }, { char: "🗻", name: "fuji" }, { char: "🏕️", name: "camping" },
+  { char: "🏖️", name: "beach" }, { char: "🏜️", name: "desert" }, { char: "🏝️", name: "island" }, { char: "🏙️", name: "city" },
+  { char: "🏚️", name: "house" }, { char: "🏠", name: "house" }, { char: "🏡", name: "house" }, { char: "🏢", name: "office" },
+  { char: "🏣", name: "post office" }, { char: "🏤", name: "post office" }, { char: "🏥", name: "hospital" }, { char: "🏦", name: "bank" },
+  { char: "🏨", name: "hotel" }, { char: "🏩", name: "love hotel" }, { char: "🏪", name: "convenience store" }, { char: "🏫", name: "school" },
+  { char: "🏬", name: "department store" }, { char: "🏭", name: "factory" }, { char: "🏯", name: "castle" }, { char: "🏰", name: "castle" },
+  { char: "💒", name: "wedding" }, { char: "🗼", name: "tokyo tower" }, { char: "🗽", name: "statue of liberty" }, { char: "⛪", name: "church" },
+  { char: "🕌", name: "mosque" }, { char: "🛕", name: "temple" }, { char: "🕍", name: "synagogue" }, { char: "⛩️", name: "shrine" },
+  { char: "🕋", name: "kaaba" }, { char: "⛲", name: "fountain" }, { char: "⛺", name: "tent" }, { char: "🌁", name: "foggy" },
+  { char: "🌃", name: "night" }, { char: "🏙️", name: "cityscape" }, { char: "🌅", name: "sunrise" }, { char: "🌇", name: "sunset" },
+  { char: "🌉", name: "bridge" }, { char: "♨️", name: "hot springs" }, { char: "🎠", name: "carousel" }, { char: "🎡", name: "ferris wheel" },
+  { char: "🎢", name: "roller coaster" }, { char: "🚂", name: "locomotive" }, { char: "🚃", name: "railway" }, { char: "🚄", name: "bullet train" },
+  { char: "🚅", name: "bullet train" }, { char: "🚆", name: "train" }, { char: "🚇", name: "metro" }, { char: "🚈", name: "light rail" },
+  { char: "🚉", name: "station" }, { char: "🚊", name: "tram" }, { char: "🚝", name: "monorail" }, { char: "🚞", name: "mountain rail" },
+  { char: "🚋", name: "tram" }, { char: "🚌", name: "bus" }, { char: "🚍", name: "bus" }, { char: "🚎", name: "trolleybus" },
+  { char: "🚐", name: "minibus" }, { char: "🚑", name: "ambulance" }, { char: "🚒", name: "fire engine" }, { char: "🚓", name: "police car" },
+  { char: "🚔", name: "police car" }, { char: "🚕", name: "taxi" }, { char: "🚖", name: "taxi" }, { char: "🚗", name: "car" },
+  { char: "🚘", name: "car" }, { char: "🚙", name: "suv" }, { char: "🚚", name: "truck" }, { char: "🚛", name: "truck" },
+  { char: "🚜", name: "tractor" }, { char: "🏎️", name: "race car" }, { char: "🏍️", name: "motorcycle" }, { char: "🛵", name: "scooter" },
+  { char: "🚲", name: "bicycle" }, { char: "🛴", name: "scooter" }, { char: "🚏", name: "bus stop" }, { char: "🛣️", name: "motorway" },
+  { char: "🛤️", name: "railway" }, { char: "⛽", name: "fuel" }, { char: "🚨", name: "siren" }, { char: "🚥", name: "traffic light" },
+  { char: "🚦", name: "traffic light" }, { char: "🚧", name: "construction" }, { char: "🛑", name: "stop" }, { char: "⚓", name: "anchor" },
+  { char: "⛵", name: "sailboat" }, { char: "🛶", name: "canoe" }, { char: "🚤", name: "speedboat" }, { char: "🛳️", name: "passenger ship" },
+  { char: "⛴️", name: "ferry" }, { char: "🛥️", name: "motorboat" }, { char: "🚢", name: "ship" }, { char: "✈️", name: "plane" },
+  { char: "🛩️", name: "plane" }, { char: "🛫", name: "departure" }, { char: "🛬", name: "arrival" }, { char: "🪂", name: "parachute" },
+  { char: "💺", name: "seat" }, { char: "🚁", name: "helicopter" }, { char: "🚟", name: "suspension railway" }, { char: "🚠", name: "cable car" },
+  { char: "🚡", name: "aerial tramway" }, { char: "🚀", name: "rocket" }, { char: "🛸", name: "ufo" }, { char: "🛰️", name: "satellite" },
+  { char: "🛎️", name: "bellhop" }, { char: "⌛", name: "hourglass" }, { char: "⏳", name: "hourglass" }, { char: "⌚", name: "watch" },
+  { char: "⏰", name: "alarm" }, { char: "⏱️", name: "stopwatch" }, { char: "⏲️", name: "timer" }, { char: "🕰️", name: "clock" },
+  { char: "🌡️", name: "thermometer" }, { char: "☀️", name: "sun" }, { char: "🌝", name: "moon" }, { char: "🌛", name: "moon" },
+  { char: "🌜", name: "moon" }, { char: "🌚", name: "moon" }, { char: "🌙", name: "moon" }, { char: "🌕", name: "moon" },
+  { char: "🌖", name: "moon" }, { char: "🌗", name: "moon" }, { char: "🌘", name: "moon" }, { char: "🌑", name: "moon" },
+  { char: "🌒", name: "moon" }, { char: "🌓", name: "moon" }, { char: "🌔", name: "moon" }, { char: "⭐", name: "star" },
+  { char: "🌟", name: "star" }, { char: "🌠", name: "shooting star" }, { char: "☁️", name: "cloud" }, { char: "⛅", name: "sun cloud" },
+  { char: "⛈️", name: "thunder cloud" }, { char: "🌤️", name: "sun cloud" }, { char: "🌥️", name: "sun cloud" }, { char: "🌦️", name: "sun rain" },
+  { char: "🌧️", name: "rain cloud" }, { char: "🌨️", name: "snow cloud" }, { char: "🌩️", name: "lightning cloud" }, { char: "🌪️", name: "tornado" },
+  { char: "🌫️", name: "fog" }, { char: "🌬️", name: "wind" }, { char: "🌈", name: "rainbow" }, { char: "⛱️", name: "umbrella" },
+  { char: "⚡", name: "lightning" }, { char: "❄️", name: "snowflake" }, { char: "☃️", name: "snowman" }, { char: "⛄", name: "snowman" },
+  { char: "🔥", name: "fire" }, { char: "💧", name: "drop" }, { char: "🌊", name: "wave" },
+  // Objects & Symbols
+  { char: "🎁", name: "gift" }, { char: "🎈", name: "balloon" }, { char: "🎉", name: "party popper" }, { char: "🎊", name: "confetti" },
+  { char: "🎀", name: "ribbon" }, { char: "🪄", name: "magic wand" }, { char: "🧿", name: "nazar" }, { char: "🧧", name: "red envelope" },
+  { char: "🏮", name: "lantern" }, { char: "🎐", name: "wind chime" }, { char: "🕯️", name: "candle" }, { char: "💡", name: "bulb" },
+  { char: "🔦", name: "flashlight" }, { char: "🏮", name: "lantern" }, { char: "🧱", name: "brick" }, { char: "🪙", name: "coin" },
+  { char: "💸", name: "money" }, { char: "💵", name: "money" }, { char: "💴", name: "money" }, { char: "💶", name: "money" },
+  { char: "💷", name: "money" }, { char: "💰", name: "money" }, { char: "💳", name: "card" }, { char: "💎", name: "gem" },
+  { char: "⚖️", name: "balance" }, { char: "🔧", name: "wrench" }, { char: "🔨", name: "hammer" }, { char: "⚒️", name: "hammer" },
+  { char: "🛠️", name: "tools" }, { char: "⛏️", name: "pick" }, { char: "🔩", name: "bolt" }, { char: "⚙️", name: "gear" },
+  { char: "🪓", name: "axe" }, { char: "🔫", name: "gun" }, { char: "🛡️", name: "shield" }, { char: "⚔️", name: "swords" },
+  { char: "🗡️", name: "dagger" }, { char: "⛓️", name: "chains" }, { char: "🔗", name: "link" }, { char: "💉", name: "syringe" },
+  { char: "💊", name: "pill" }, { char: "🩹", name: "bandage" }, { char: "🩺", name: "stethoscope" }, { char: "🔭", name: "telescope" },
+  { char: "🔬", name: "microscope" }, { char: "🌡️", name: "thermometer" }, { char: "🧪", name: "flask" }, { char: "🧫", name: "petri dish" },
+  { char: "🧬", name: "dna" }, { char: "📡", name: "satellite" }, { char: "🛰️", name: "satellite" }, { char: "🛰️", name: "satellite" },
+];
 
 // Create a client component that uses useSearchParams
 function BackgroundContent() {
@@ -57,6 +235,7 @@ function BackgroundContent() {
   const stickerCounter = useRef(0);
   const stickerDragRef = useRef(null); // { id, mode, startX, startY, initX, initY, initScaleX, initScaleY }
   const [isDrawing, setIsDrawing] = useState(false);
+  const [emojiSearch, setEmojiSearch] = useState("");
 
   const fontColorPresets = [
     "#000000", // Black
@@ -1039,17 +1218,35 @@ function BackgroundContent() {
 
                 {/* Stickers Tab */}
                 {activeTab === "stickers" && (
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-700">Add Stickers</h3>
-                    <div className="grid grid-cols-4 gap-2">
-                      {["🧸", "🎀", "✨", "💖", "🍭", "🌈", "🌸", "🍓", "☁️", "🦋", "🎨", "⭐", "🎉", "🐱", "🐶", "🎈"].map((emoji, i) => (
+                  <div className="space-y-4 flex flex-col">
+                    <div className="flex flex-col gap-3">
+                      <h3 className="text-sm font-medium text-gray-700">Add Stickers</h3>
+                      
+                      {/* Emoji Search */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search emojis..."
+                          value={emojiSearch}
+                          onChange={(e) => setEmojiSearch(e.target.value)}
+                          className="w-full p-2 pl-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-2 overflow-y-auto max-h-[300px] p-1 scrollbar-thin scrollbar-thumb-gray-200">
+                      {(emojiSearch 
+                        ? ALL_EMOJIS.filter(e => e.name.toLowerCase().includes(emojiSearch.toLowerCase()))
+                        : ALL_EMOJIS
+                      ).map((item, i) => (
                         <button
                           key={i}
+                          title={item.name}
                           onClick={() => {
                             stickerCounter.current += 1;
                             const newSticker = {
                               id: stickerCounter.current,
-                              emoji,
+                              emoji: item.char,
                               x: 100,
                               y: 100,
                               scaleX: 1,
@@ -1059,9 +1256,9 @@ function BackgroundContent() {
                             setStickers(prev => [...prev, newSticker]);
                             setSelectedEditElement(`sticker-${newSticker.id}`);
                           }}
-                          className="text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          className="text-2xl p-2 hover:bg-gray-100 rounded-lg transition-all hover:scale-110 active:scale-95"
                         >
-                          {emoji}
+                          {item.char}
                         </button>
                       ))}
                     </div>
@@ -1446,6 +1643,32 @@ function BackgroundContent() {
                             onPointerDown={(e) => handleStickerPointerDown(e, sticker.id, 'resize')}
                           >
                             <Move size={11} color="white" />
+                          </div>
+
+                          {/* Delete handle - top right */}
+                          <div
+                            className="absolute flex items-center justify-center"
+                            style={{
+                              top: '-10px',
+                              right: '-10px',
+                              width: '22px',
+                              height: '22px',
+                              background: '#ef4444',
+                              borderRadius: '50%',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                              border: '2px solid white',
+                              pointerEvents: 'auto',
+                              cursor: 'pointer',
+                              touchAction: 'none',
+                              zIndex: 10
+                            }}
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              setStickers(prev => prev.filter(s => s.id !== sticker.id));
+                              setSelectedEditElement(null);
+                            }}
+                          >
+                            <X size={12} color="white" />
                           </div>
                         </>
                       )}
