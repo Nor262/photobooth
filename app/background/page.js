@@ -766,9 +766,10 @@ function BackgroundContent() {
                 </div>
               )}
             </div>
+          </div>
             
-            {/* Action buttons - Simplified */}
-            <div className="p-4 border-t border-gray-100 bg-gray-50 space-y-2">
+          {/* Action buttons - Simplified */}
+          <div className="p-4 border-t border-gray-100 bg-gray-50 space-y-2">
               {saveSuccess && (
                 <div className="bg-green-50 text-green-700 text-xs p-1.5 rounded mb-2 text-center">
                   Photo strip saved successfully!
