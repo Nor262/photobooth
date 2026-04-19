@@ -7,7 +7,7 @@ import { Camera } from 'lucide-react';
 
 export default function BoothSelection() {
   const router = useRouter();
-  const [selectedShots, setSelectedShots] = useState(null);
+  const [selectedShots, setSelectedShots] = useState(4);
   const [exitAnimation, setExitAnimation] = useState(false);
   const [showWatermark, setShowWatermark] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,14 +61,7 @@ export default function BoothSelection() {
     open: { height: '0%' }
   };
 
-  const shotOptions = [
-    { count: 1, label: "Single Shot", description: "Perfect for a profile picture" },
-    { count: 3, label: "Triple Shot", description: "Explore different poses" },
-    { count: 4, label: "Multi Shot", description: "Full photo session experience" },
-    { count: 5, label: "Grid Shot (5)", description: "5 photos in a 2-column grid" },
-    { count: 6, label: "Grid Shot (6)", description: "6 photos in a 2-column grid" },
-    { count: 8, label: "Grid Shot (8)", description: "8 photos in a 2-column grid" }
-  ];
+
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
@@ -317,41 +310,53 @@ export default function BoothSelection() {
         </motion.div>
 
         <motion.div
-          className="space-y-3 mb-6"
+          className="flex flex-col items-center justify-center mb-8"
           variants={fadeIn}
         >
-          {shotOptions.map((option) => (
-            <motion.div
-              key={option.count}
-              onClick={() => setSelectedShots(option.count)}
-              className={`p-3 rounded-md cursor-pointer transition-all border ${selectedShots === option.count
-                ? 'bg-white border-blue-500'
-                : 'bg-white border-gray-200 hover:border-blue-300'
-                }`}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+          <div className="flex items-center gap-6">
+            <motion.button
+              onClick={() => setSelectedShots(prev => Math.max(1, prev - 1))}
+              className="w-12 h-12 flex items-center justify-center rounded-full border border-blue-200 text-blue-500 hover:bg-blue-50 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
-              <div className="flex items-center">
-                <div className={`w-5 h-5 rounded-full mr-3 border ${selectedShots === option.count
-                  ? 'border-blue-500'
-                  : 'border-gray-300'
-                  }`}>
-                  {selectedShots === option.count && (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-800 text-sm">{option.label}</h3>
-                  <p className="text-xs text-gray-500">{option.description}</p>
-                </div>
-                <div className="ml-auto text-xl font-medium text-blue-500">
-                  {option.count}
-                </div>
-              </div>
-            </motion.div>
-          ))}
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+              </svg>
+            </motion.button>
+
+            <div className="flex flex-col items-center">
+              <span className="text-6xl font-light text-blue-500 mb-1">{selectedShots}</span>
+              <span className="text-xs text-gray-400 uppercase tracking-widest">Photos</span>
+            </div>
+
+            <motion.button
+              onClick={() => setSelectedShots(prev => Math.min(8, prev + 1))}
+              className="w-12 h-12 flex items-center justify-center rounded-full border border-blue-200 text-blue-500 hover:bg-blue-50 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </motion.button>
+          </div>
+          
+          <div className="mt-6 w-full">
+            <input 
+              type="range" 
+              min="1" 
+              max="8" 
+              value={selectedShots} 
+              onChange={(e) => setSelectedShots(parseInt(e.target.value))}
+              className="w-full h-1.5 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500"
+            />
+            <div className="flex justify-between mt-2 px-1">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                <span key={n} className={`text-[10px] ${selectedShots === n ? 'text-blue-500 font-bold' : 'text-gray-300'}`}>{n}</span>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
         <motion.button

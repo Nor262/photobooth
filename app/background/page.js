@@ -635,7 +635,46 @@ function BackgroundContent() {
 
                 {/* Layout Tab */}
                 {activeTab === "layout" && (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    {/* Print Format Selection */}
+                    <div className="mb-6">
+                      <h3 className="text-sm font-medium mb-3 text-gray-700">Kích thước in</h3>
+                      <div className="flex flex-col gap-3">
+                        <button
+                          onClick={() => {
+                            setPrintFormat("strip");
+                            setStripWidth(320);
+                          }}
+                          className={`flex flex-col items-start p-3 rounded-lg border text-left transition-all ${printFormat === "strip" ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
+                        >
+                          <div className="flex items-center mb-1">
+                            <div className={`w-3 h-3 rounded-full mr-2 ${printFormat === "strip" ? "bg-blue-500" : "bg-gray-200"}`}></div>
+                            <span className={`text-sm font-bold ${printFormat === "strip" ? "text-blue-700" : "text-gray-700"}`}>Dải ảnh đứng (Strip)</span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 leading-relaxed">
+                            Kích thước 2x6 inch (khoảng 5x15 cm), rất phổ biến cho các loại máy chụp ảnh lấy liền, cho phép 1 tấm giấy 4x6 in ra 2 dải ảnh giống nhau.
+                          </p>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setPrintFormat("postcard");
+                            setStripWidth(500);
+                          }}
+                          className={`flex flex-col items-start p-3 rounded-lg border text-left transition-all ${printFormat === "postcard" ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
+                        >
+                          <div className="flex items-center mb-1">
+                            <div className={`w-3 h-3 rounded-full mr-2 ${printFormat === "postcard" ? "bg-blue-500" : "bg-gray-200"}`}></div>
+                            <span className={`text-sm font-bold ${printFormat === "postcard" ? "text-blue-700" : "text-gray-700"}`}>Ảnh đơn (Postcard)</span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 leading-relaxed">
+                            Kích thước 4x6 inch (10x15 cm), kích thước tiêu chuẩn tương đương ảnh postcard thông thường.
+                          </p>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 pt-2 border-t border-gray-100">
                     <RangeSlider
                       label="Strip Width"
                       value={stripWidth}
@@ -676,7 +715,8 @@ function BackgroundContent() {
                       max={8}
                     />
                   </div>
-                )}
+                </div>
+              )}
 
                 {/* Extras Tab */}
                 {activeTab === "extras" && (
@@ -822,9 +862,12 @@ function BackgroundContent() {
                     // Normal mode
                     backgroundColor: cardColor,
                     padding: `${stripPadding}px`,
-                    width: stripMinimized ? '160px' : `${stripWidth}px`,
-                    transform: stripMinimized ? 'scale(0.6)' : 'scale(1)',
-                    transformOrigin: 'top center'
+                    width: stripMinimized ? (printFormat === 'strip' ? '120px' : '240px') : `${stripWidth}px`,
+                    aspectRatio: printFormat === 'strip' ? '2/6' : '4/6',
+                    transform: stripMinimized ? 'scale(0.8)' : 'scale(1)',
+                    transformOrigin: 'top center',
+                    display: 'flex',
+                    flexDirection: 'column'
                   }
               }
             >
@@ -943,8 +986,14 @@ function BackgroundContent() {
                 <>
                   {/* Photo strip layout */}
                   <div
-                    className={images.length >= 5 ? "grid grid-cols-2 w-full relative z-0" : "flex flex-col w-full relative z-0"}
-                    style={{ gap: `${stripGap}px` }}
+                    className="w-full h-full relative z-0"
+                    style={{ 
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      justifyContent: 'center',
+                      alignContent: 'start',
+                      gap: `${stripGap}px` 
+                    }}
                   >
                     {images.map((image, index) => (
                       <div
@@ -953,22 +1002,28 @@ function BackgroundContent() {
                         data-filter={image.filter} // Store filter type
                         style={{
                           borderRadius: `${borderRadius}px`,
-                          border: `${borderWidth}px solid ${borderColor}`
+                          border: `${borderWidth}px solid ${borderColor}`,
+                          width: printFormat === 'strip' ? '100%' : `calc(50% - ${stripGap / 2}px)`,
+                          height: printFormat === 'strip' 
+                            ? `calc(${100 / images.length}% - ${stripGap}px)` 
+                            : `calc(${100 / Math.ceil(images.length / 2)}% - ${stripGap}px)`,
+                          minHeight: '100px'
                         }}
                       >
                         {/* Using Next.js Image component instead of img for performance optimization */}
-                        <NextImage
-                          src={image.src}
-                          alt={`Photo ${index + 1}`}
-                          width={400}
-                          height={400}
-                          className="w-full h-auto"
-                          style={{
-                            ...filterStyles[image.filter],
-                            transform: "scaleX(-1)" // Keep consistent with camera view
-                          }}
-                          data-filter={image.filter}
-                        />
+                        <div className="relative w-full h-full">
+                          <NextImage
+                            src={image.src}
+                            alt={`Photo ${index + 1}`}
+                            fill
+                            style={{
+                              objectFit: "cover",
+                              ...filterStyles[image.filter],
+                              transform: "scaleX(-1)" // Keep consistent with camera view
+                            }}
+                            data-filter={image.filter}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
