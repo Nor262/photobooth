@@ -1,8 +1,4 @@
 <div align="center">
-  <img src="./assets/banner.png" alt="Photobooth Banner" width="600">
-</div>
-
-<div align="center">
 
 # Photobooth
 
@@ -12,6 +8,8 @@
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38BDF8?logo=tailwindcss&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES202x-F7DF1E?logo=javascript&logoColor=black)
+
+<img src="./assets/banner.png" alt="Photobooth Banner" width="600" />
 
 </div>
 
