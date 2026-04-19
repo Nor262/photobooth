@@ -350,13 +350,13 @@ export default function BoothSelection() {
               </svg>
             </motion.button>
           </div>
-          
+
           <div className="mt-6 w-full">
-            <input 
-              type="range" 
-              min="1" 
-              max="8" 
-              value={selectedShots} 
+            <input
+              type="range"
+              min="1"
+              max="8"
+              value={selectedShots}
               onChange={(e) => setSelectedShots(parseInt(e.target.value))}
               className="w-full h-1.5 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
@@ -375,36 +375,33 @@ export default function BoothSelection() {
             <button
               onClick={() => setPrintFormat("strip")}
               disabled={selectedShots >= 5}
-              className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
-                selectedShots >= 5 
-                  ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed" 
-                  : printFormat === "strip" 
-                    ? "border-blue-500 bg-blue-50 shadow-sm" 
-                    : "border-gray-100 bg-white hover:border-gray-200"
-              }`}
+              className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${selectedShots >= 5
+                ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
+                : printFormat === "strip"
+                  ? "border-blue-500 bg-blue-50 shadow-sm"
+                  : "border-gray-100 bg-white hover:border-gray-200"
+                }`}
             >
               <div className="flex items-center mb-1">
-                <div className={`w-4 h-4 rounded-full mr-3 flex items-center justify-center border ${
-                  selectedShots >= 5 
-                    ? "border-gray-200" 
-                    : printFormat === "strip" 
-                      ? "border-blue-500" 
-                      : "border-gray-300"
-                }`}>
+                <div className={`w-4 h-4 rounded-full mr-3 flex items-center justify-center border ${selectedShots >= 5
+                  ? "border-gray-200"
+                  : printFormat === "strip"
+                    ? "border-blue-500"
+                    : "border-gray-300"
+                  }`}>
                   {printFormat === "strip" && selectedShots < 5 && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
                 </div>
-                <span className={`text-sm font-bold ${
-                  selectedShots >= 5 
-                    ? "text-gray-400" 
-                    : printFormat === "strip" 
-                      ? "text-blue-700" 
-                      : "text-gray-700"
-                }`}>Dải ảnh đứng (Strip)</span>
+                <span className={`text-sm font-bold ${selectedShots >= 5
+                  ? "text-gray-400"
+                  : printFormat === "strip"
+                    ? "text-blue-700"
+                    : "text-gray-700"
+                  }`}>Strip</span>
               </div>
               <p className="text-[11px] text-gray-500 leading-relaxed ml-7">
-                {selectedShots >= 5 
-                  ? "Dải ảnh đứng chỉ hỗ trợ tối đa 4 ảnh." 
-                  : "Kích thước 2x6 inch, phổ biến cho máy lấy liền, 1 tờ 4x6 in ra 2 dải."}
+                {selectedShots >= 5
+                  ? "Strip just for 4 shots or less"
+                  : "Size 2x6 inch, common for instant camera."}
               </p>
             </button>
 
@@ -416,10 +413,10 @@ export default function BoothSelection() {
                 <div className={`w-4 h-4 rounded-full mr-3 flex items-center justify-center border ${printFormat === "postcard" ? "border-blue-500" : "border-gray-300"}`}>
                   {printFormat === "postcard" && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
                 </div>
-                <span className={`text-sm font-bold ${printFormat === "postcard" ? "text-blue-700" : "text-gray-700"}`}>Ảnh đơn (Postcard)</span>
+                <span className={`text-sm font-bold ${printFormat === "postcard" ? "text-blue-700" : "text-gray-700"}`}>Postcard</span>
               </div>
               <p className="text-[11px] text-gray-500 leading-relaxed ml-7">
-                Kích thước 4x6 inch, tiêu chuẩn ảnh postcard thông thường.
+                Size 4x6 inch, standard postcard size.
               </p>
             </button>
           </div>
