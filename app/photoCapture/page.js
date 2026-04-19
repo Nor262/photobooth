@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense, useCallback } from "react";
 import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -83,7 +83,7 @@ function PhotoCaptureContent() {
   }, [capturedImages, shots]);
 
   // Function to take a photo
-  const takePhoto = () => {
+  const takePhoto = useCallback(() => {
     if (webcamRef.current) {
       const imageSrc = webcamRef.current.getScreenshot();
       if (imageSrc) {
@@ -91,7 +91,7 @@ function PhotoCaptureContent() {
       }
     }
     setIsCapturing(false);
-  };
+  }, [selectedFilter]);
 
   // Function to take a mock photo when camera is broken
   const takeMockPhoto = () => {

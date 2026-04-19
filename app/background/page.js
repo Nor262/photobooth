@@ -870,10 +870,12 @@ function BackgroundContent() {
                     <div className="absolute inset-0 z-10 pointer-events-none" style={{
                       transform: `translate(${frameTransform.x}px, ${frameTransform.y}px) scale(${frameTransform.scaleX}, ${frameTransform.scaleY})`
                     }}>
-                      <img
+                      <NextImage
                         src={customFrameSrc}
                         alt="Custom Frame"
-                        className="w-full h-full pointer-events-none"
+                        fill
+                        className="pointer-events-none"
+                        style={{ objectFit: 'cover' }}
                       />
                     </div>
                   </div>
