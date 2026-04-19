@@ -125,7 +125,7 @@ export default function Home() {
         >
           <h1 className="text-5xl font-bold mb-6 text-gray-800">Photobooth by Nor</h1>
           <p className="text-xl text-gray-600 mb-10 max-w-md mx-auto">
-            Hope you like it <3
+            Hope you like it {"<3"}
           </p>
         </motion.div>
 

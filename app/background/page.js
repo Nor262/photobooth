@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
-import { ArrowLeft, Download, Share, Calendar, Plus, Sliders, Move, Trash, Palette, Maximize, Minimize, Image, FileImage } from "lucide-react";
+import { ArrowLeft, Download, Share, Calendar, Plus, Sliders, Move, Trash, Trash2, MousePointer, Palette, Maximize, Minimize, Image, FileImage, Sticker, Pencil, Eraser, RotateCcw } from "lucide-react";
 import html2canvas from 'html2canvas';
 import NextImage from "next/image"; // Import Next.js Image component
 
@@ -46,6 +46,17 @@ function BackgroundContent() {
     startY: 0,
     initialTransform: null
   });
+
+  const [customMode, setCustomMode] = useState("upload"); // "upload" or "custom"
+  const [stickers, setStickers] = useState([]); // [{ id, emoji, x, y, scaleX, scaleY, rotate }]
+  const [brushColor, setBrushColor] = useState("#e53e3e");
+  const [brushSize, setBrushSize] = useState(8);
+  const [drawingPaths, setDrawingPaths] = useState([]);
+  const canvasRef = useRef(null);
+  const isDrawingRef = useRef(false);
+  const stickerCounter = useRef(0);
+  const stickerDragRef = useRef(null); // { id, mode, startX, startY, initX, initY, initScaleX, initScaleY }
+  const [isDrawing, setIsDrawing] = useState(false);
 
   const fontColorPresets = [
     "#000000", // Black
@@ -104,12 +115,19 @@ function BackgroundContent() {
 
   // Set default styling for grid layouts
   useEffect(() => {
-    // Determine format: 1, 2, 6, 8 -> postcard (4x6). Others -> strip (2x4).
-    const isPostcard = [1, 2, 6, 8].includes(images.length);
-    setPrintFormat(isPostcard ? "postcard" : "strip");
+    // Check if user selected a print format in booth selection
+    const savedFormat = localStorage.getItem('printFormat');
+    if (savedFormat) {
+      setPrintFormat(savedFormat);
+      if (savedFormat === "strip") setStripWidth(320);
+      else setStripWidth(500);
+    } else {
+      // Fallback/Default: Determine format: 1, 2, 6, 8 -> postcard (4x6). Others -> strip (2x4).
+      const isPostcard = [1, 2, 6, 8].includes(images.length);
+      setPrintFormat(isPostcard ? "postcard" : "strip");
+    }
 
     if (images.length >= 5) {
-      setStripWidth(500);
       setCardColor("#111111");
       setDateFontColor("#ffffff");
       setStripPadding(36);
@@ -145,9 +163,15 @@ function BackgroundContent() {
     }
   };
 
+  const currentStickerTransform = selectedEditElement?.startsWith?.('sticker-')
+    ? (stickers.find(s => `sticker-${s.id}` === selectedEditElement) || { x: 100, y: 100, scaleX: 1, scaleY: 1 })
+    : null;
+
   const currentTransform = selectedEditElement === 'frame'
     ? frameTransform
-    : (imageTransforms[parseInt(selectedEditElement?.split('-')[1])] || { x: 0, y: 0, scaleX: 1, scaleY: 1 });
+    : selectedEditElement?.startsWith?.('sticker-')
+      ? (currentStickerTransform || { x: 0, y: 0, scaleX: 1, scaleY: 1 })
+      : (imageTransforms[parseInt(selectedEditElement?.split('-')[1])] || { x: 0, y: 0, scaleX: 1, scaleY: 1 });
 
   const handlePointerDown = (e, mode) => {
     e.preventDefault();
@@ -165,6 +189,189 @@ function BackgroundContent() {
       baseW: rect.width / currentTransform.scaleX,
       baseH: rect.height / currentTransform.scaleY
     });
+  };
+
+  // ---- Sticker dedicated drag/resize system ----
+  const handleStickerPointerDown = (e, stickerId, mode) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const sticker = stickers.find(s => s.id === stickerId);
+    if (!sticker) return;
+    setSelectedEditElement(`sticker-${stickerId}`);
+
+    // For rotation, we need the sticker's center in page coordinates
+    // The sticker element position is at (sticker.x, sticker.y) in the strip container
+    // We use atan2 from center to get initial angle
+    let initAngle = 0;
+    if (mode === 'rotate') {
+      const stripEl = photoStripRef.current;
+      if (stripEl) {
+        const rect = stripEl.getBoundingClientRect();
+        const centerX = rect.left + sticker.x;
+        const centerY = rect.top + sticker.y;
+        initAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+      }
+    }
+
+    stickerDragRef.current = {
+      id: stickerId,
+      mode,
+      startX: e.clientX,
+      startY: e.clientY,
+      initX: sticker.x,
+      initY: sticker.y,
+      initScaleX: sticker.scaleX,
+      initScaleY: sticker.scaleY,
+      initRotate: sticker.rotate ?? 0,
+      initAngle,
+    };
+    window.addEventListener('pointermove', onStickerPointerMove);
+    window.addEventListener('pointerup', onStickerPointerUp);
+  };
+
+  const onStickerPointerMove = (e) => {
+    const drag = stickerDragRef.current;
+    if (!drag) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    if (drag.mode === 'move') {
+      setStickers(prev => prev.map(s => s.id === drag.id
+        ? { ...s, x: drag.initX + dx, y: drag.initY + dy }
+        : s
+      ));
+    } else if (drag.mode === 'resize') {
+      const newScale = Math.max(0.3, drag.initScaleX + (dx + dy) / 100);
+      setStickers(prev => prev.map(s => s.id === drag.id
+        ? { ...s, scaleX: newScale, scaleY: newScale }
+        : s
+      ));
+    } else if (drag.mode === 'rotate') {
+      // Get current sticker position from ref data
+      const stripEl = photoStripRef.current;
+      if (!stripEl) return;
+      const rect = stripEl.getBoundingClientRect();
+      // Find the sticker's current position
+      const stickerState = stickers.find(s => s.id === drag.id);
+      const sx = stickerState ? stickerState.x : drag.initX;
+      const sy = stickerState ? stickerState.y : drag.initY;
+      const centerX = rect.left + sx;
+      const centerY = rect.top + sy;
+      const currAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+      const newRotate = drag.initRotate + (currAngle - drag.initAngle);
+      setStickers(prev => prev.map(s => s.id === drag.id
+        ? { ...s, rotate: newRotate }
+        : s
+      ));
+    }
+  };
+
+  const onStickerPointerUp = () => {
+    stickerDragRef.current = null;
+    window.removeEventListener('pointermove', onStickerPointerMove);
+    window.removeEventListener('pointerup', onStickerPointerUp);
+  };
+  // ---- End sticker drag system ----
+
+  const redrawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    drawingPaths.forEach(path => {
+      if (path.points.length < 2) return;
+      ctx.beginPath();
+      ctx.strokeStyle = path.color;
+      ctx.lineWidth = path.width;
+      ctx.moveTo(path.points[0].x, path.points[0].y);
+      for (let i = 1; i < path.points.length; i++) {
+        ctx.lineTo(path.points[i].x, path.points[i].y);
+      }
+      ctx.stroke();
+    });
+  };
+
+  // Sync canvas size to container, keep drawings
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(() => {
+      // Save image data, resize, restore
+      const ctx = canvas.getContext('2d');
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      ctx.putImageData(imageData, 0, 0);
+      redrawCanvas();
+    });
+    observer.observe(canvas);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    redrawCanvas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawingPaths]);
+
+  const handleCanvasPointerDown = (e) => {
+    if (activeTab !== 'draw') return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    isDrawingRef.current = true;
+    setIsDrawing(true);
+
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+    ctx.fillStyle = brushColor;
+    ctx.fill();
+
+    setDrawingPaths(prev => [...prev, {
+      color: brushColor,
+      width: brushSize,
+      points: [{ x, y }]
+    }]);
+  };
+
+  const handleCanvasPointerMove = (e) => {
+    if (!isDrawingRef.current || activeTab !== 'draw') return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    // Draw incrementally on canvas for smooth feel
+    const ctx = canvas.getContext('2d');
+    setDrawingPaths(prev => {
+      const newPaths = [...prev];
+      const path = newPaths[newPaths.length - 1];
+      const lastPt = path.points[path.points.length - 1];
+      ctx.beginPath();
+      ctx.moveTo(lastPt.x, lastPt.y);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = path.color;
+      ctx.lineWidth = path.width;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      path.points.push({ x, y });
+      return newPaths;
+    });
+  };
+
+  const handleCanvasPointerUp = () => {
+    isDrawingRef.current = false;
+    setIsDrawing(false);
   };
 
   useEffect(() => {
@@ -231,8 +438,11 @@ function BackgroundContent() {
 
       if (selectedEditElement === 'frame') {
         setFrameTransform(newTransform);
+      } else if (selectedEditElement?.startsWith?.('sticker-')) {
+        const stickerId = parseInt(selectedEditElement.replace('sticker-', ''));
+        setStickers(prev => prev.map(s => s.id === stickerId ? { ...s, ...newTransform } : s));
       } else {
-        const index = parseInt(selectedEditElement.split('-')[1]);
+        const index = parseInt(selectedEditElement?.split('-')[1]);
         setImageTransforms(prev => {
           const arr = [...prev];
           arr[index] = newTransform;
@@ -240,6 +450,10 @@ function BackgroundContent() {
         });
       }
     };
+
+
+
+
 
     const handlePointerUp = () => {
       setDragState(prev => ({ ...prev, isDragging: false }));
@@ -445,7 +659,7 @@ function BackgroundContent() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-between p-4 md:p-6 bg-gray-50">
-      <div className="w-full max-w-4xl mx-auto flex flex-col items-center">
+      <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
         {/* Header - Minimalist version */}
         <div className="w-full flex justify-between items-center mb-6">
           <button
@@ -461,45 +675,96 @@ function BackgroundContent() {
         {/* Content area with side panel and photo strip */}
         <div className="w-full flex flex-col md:flex-row gap-6 items-start">
           {/* Left sidebar for customization - Vertical Tabs Layout */}
-          <div className="w-full md:w-80 bg-white rounded-lg shadow-sm flex flex-col border border-gray-200 overflow-hidden max-h-[85vh]">
-            <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
-              <h2 className="text-lg font-bold text-gray-800">Customize</h2>
-              <button
-                onClick={() => setStripMinimized(!stripMinimized)}
-                className="text-gray-400 hover:text-gray-600 transition"
-                title={stripMinimized ? "Maximize Strip" : "Minimize Strip"}
-              >
-                {stripMinimized ? <Maximize size={16} /> : <Minimize size={16} />}
-              </button>
+          <div className="w-full md:w-100 bg-white rounded-lg shadow-sm flex flex-col border border-gray-200 overflow-hidden max-h-[85vh]">
+            <div className="flex flex-col border-b border-gray-100 bg-gray-50">
+              <div className="flex justify-between items-center p-4">
+                <h2 className="text-lg font-bold text-gray-800">Customize</h2>
+                <button
+                  onClick={() => setStripMinimized(!stripMinimized)}
+                  className="text-gray-400 hover:text-gray-600 transition"
+                  title={stripMinimized ? "Maximize Strip" : "Minimize Strip"}
+                >
+                  {stripMinimized ? <Maximize size={16} /> : <Minimize size={16} />}
+                </button>
+              </div>
+
+              {/* Mode Toggle */}
+              <div className="flex px-4 pb-3">
+                <div className="flex w-full bg-gray-200 rounded-xl p-1 gap-1">
+                  <button
+                    onClick={() => {
+                      setCustomMode("upload");
+                      setActiveTab("frames");
+                    }}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${customMode === "upload"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                      }`}
+                  >
+                    Upload Frame
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCustomMode("custom");
+                      setActiveTab("colors");
+                    }}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${customMode === "custom"
+                      ? "bg-white text-purple-600 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                      }`}
+                  >
+                    DIY Frame
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-1 min-h-[400px] overflow-hidden">
-              {/* Vertical Tabs */}
+              {/* Vertical Tabs - conditional on mode */}
               <div className="w-20 bg-gray-50 border-r border-gray-100 flex flex-col pt-2 overflow-y-auto hide-scrollbar">
-                <button
-                  onClick={() => setActiveTab("frames")}
-                  className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "frames" ? "border-blue-500 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
-                >
-                  <FileImage size={22} className="mb-1.5" /> Frames
-                </button>
-                <button
-                  onClick={() => setActiveTab("colors")}
-                  className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "colors" ? "border-blue-500 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
-                >
-                  <Palette size={22} className="mb-1.5" /> Colors
-                </button>
-                <button
-                  onClick={() => setActiveTab("layout")}
-                  className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "layout" ? "border-blue-500 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
-                >
-                  <Sliders size={22} className="mb-1.5" /> Layout
-                </button>
-                <button
-                  onClick={() => setActiveTab("extras")}
-                  className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "extras" ? "border-blue-500 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
-                >
-                  <Image size={22} className="mb-1.5" alt="" /> Extras
-                </button>
+                {customMode === "upload" ? (
+                  /* Upload Frame mode: only show Frames tab */
+                  <button
+                    onClick={() => setActiveTab("frames")}
+                    className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "frames" ? "border-blue-500 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
+                  >
+                    <FileImage size={22} className="mb-1.5" /> Frames
+                  </button>
+                ) : (
+                  /* Custom Design mode: show design tools */
+                  <>
+                    <button
+                      onClick={() => setActiveTab("colors")}
+                      className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "colors" ? "border-purple-500 text-purple-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
+                    >
+                      <Palette size={22} className="mb-1.5" /> Colors
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("layout")}
+                      className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "layout" ? "border-purple-500 text-purple-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
+                    >
+                      <Sliders size={22} className="mb-1.5" /> Layout
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("extras")}
+                      className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "extras" ? "border-purple-500 text-purple-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
+                    >
+                      <Image size={22} className="mb-1.5" alt="" /> Extras
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("stickers")}
+                      className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "stickers" ? "border-purple-500 text-purple-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
+                    >
+                      <Sticker size={22} className="mb-1.5" /> Stickers
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("draw")}
+                      className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "draw" ? "border-purple-500 text-purple-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
+                    >
+                      <Pencil size={22} className="mb-1.5" /> Draw
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Tab content container */}
@@ -636,87 +901,53 @@ function BackgroundContent() {
                 {/* Layout Tab */}
                 {activeTab === "layout" && (
                   <div className="space-y-4">
-                    {/* Print Format Selection */}
-                    <div className="mb-6">
-                      <h3 className="text-sm font-medium mb-3 text-gray-700">Kích thước in</h3>
-                      <div className="flex flex-col gap-3">
-                        <button
-                          onClick={() => {
-                            setPrintFormat("strip");
-                            setStripWidth(320);
-                          }}
-                          className={`flex flex-col items-start p-3 rounded-lg border text-left transition-all ${printFormat === "strip" ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
-                        >
-                          <div className="flex items-center mb-1">
-                            <div className={`w-3 h-3 rounded-full mr-2 ${printFormat === "strip" ? "bg-blue-500" : "bg-gray-200"}`}></div>
-                            <span className={`text-sm font-bold ${printFormat === "strip" ? "text-blue-700" : "text-gray-700"}`}>Dải ảnh đứng (Strip)</span>
-                          </div>
-                          <p className="text-[11px] text-gray-500 leading-relaxed">
-                            Kích thước 2x6 inch (khoảng 5x15 cm), rất phổ biến cho các loại máy chụp ảnh lấy liền, cho phép 1 tấm giấy 4x6 in ra 2 dải ảnh giống nhau.
-                          </p>
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setPrintFormat("postcard");
-                            setStripWidth(500);
-                          }}
-                          className={`flex flex-col items-start p-3 rounded-lg border text-left transition-all ${printFormat === "postcard" ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
-                        >
-                          <div className="flex items-center mb-1">
-                            <div className={`w-3 h-3 rounded-full mr-2 ${printFormat === "postcard" ? "bg-blue-500" : "bg-gray-200"}`}></div>
-                            <span className={`text-sm font-bold ${printFormat === "postcard" ? "text-blue-700" : "text-gray-700"}`}>Ảnh đơn (Postcard)</span>
-                          </div>
-                          <p className="text-[11px] text-gray-500 leading-relaxed">
-                            Kích thước 4x6 inch (10x15 cm), kích thước tiêu chuẩn tương đương ảnh postcard thông thường.
-                          </p>
-                        </button>
-                      </div>
+                    <div className="mb-4">
+                      <h3 className="text-sm font-medium mb-3 text-gray-700 uppercase tracking-wider">Layout Settings</h3>
                     </div>
 
                     <div className="space-y-3 pt-2 border-t border-gray-100">
-                    <RangeSlider
-                      label="Strip Width"
-                      value={stripWidth}
-                      onChange={setStripWidth}
-                      min={200}
-                      max={800}
-                    />
+                      <RangeSlider
+                        label="Strip Width"
+                        value={stripWidth}
+                        onChange={setStripWidth}
+                        min={200}
+                        max={800}
+                      />
 
-                    <RangeSlider
-                      label="Photo Spacing"
-                      value={stripGap}
-                      onChange={setStripGap}
-                      min={4}
-                      max={24}
-                    />
+                      <RangeSlider
+                        label="Photo Spacing"
+                        value={stripGap}
+                        onChange={setStripGap}
+                        min={4}
+                        max={24}
+                      />
 
-                    <RangeSlider
-                      label="Strip Padding"
-                      value={stripPadding}
-                      onChange={setStripPadding}
-                      min={8}
-                      max={40}
-                    />
+                      <RangeSlider
+                        label="Strip Padding"
+                        value={stripPadding}
+                        onChange={setStripPadding}
+                        min={8}
+                        max={40}
+                      />
 
-                    <RangeSlider
-                      label="Border Radius"
-                      value={borderRadius}
-                      onChange={setBorderRadius}
-                      min={0}
-                      max={24}
-                    />
+                      <RangeSlider
+                        label="Border Radius"
+                        value={borderRadius}
+                        onChange={setBorderRadius}
+                        min={0}
+                        max={24}
+                      />
 
-                    <RangeSlider
-                      label="Border Width"
-                      value={borderWidth}
-                      onChange={setBorderWidth}
-                      min={0}
-                      max={8}
-                    />
+                      <RangeSlider
+                        label="Border Width"
+                        value={borderWidth}
+                        onChange={setBorderWidth}
+                        min={0}
+                        max={8}
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
                 {/* Extras Tab */}
                 {activeTab === "extras" && (
@@ -802,6 +1033,103 @@ function BackgroundContent() {
                           ></button>
                         ))}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Stickers Tab */}
+                {activeTab === "stickers" && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-700">Add Stickers</h3>
+                    <div className="grid grid-cols-4 gap-2">
+                      {["🧸", "🎀", "✨", "💖", "🍭", "🌈", "🌸", "🍓", "☁️", "🦋", "🎨", "⭐", "🎉", "🐱", "🐶", "🎈"].map((emoji, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            stickerCounter.current += 1;
+                            const newSticker = {
+                              id: stickerCounter.current,
+                              emoji,
+                              x: 100,
+                              y: 100,
+                              scaleX: 1,
+                              scaleY: 1,
+                              rotate: 0
+                            };
+                            setStickers(prev => [...prev, newSticker]);
+                            setSelectedEditElement(`sticker-${newSticker.id}`);
+                          }}
+                          className="text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+
+                    {stickers.length > 0 && (
+                      <div className="pt-4 border-t border-gray-100">
+                        <h4 className="text-xs font-medium text-gray-500 mb-2">Manage Stickers</h4>
+                        <div className="space-y-2">
+                          {stickers.map((s) => (
+                            <div key={s.id} className={`flex items-center justify-between p-2 rounded-md transition-colors ${selectedEditElement === `sticker-${s.id}` ? 'bg-blue-50 ring-1 ring-blue-200' : 'bg-gray-50'}`}>
+                              <span className="text-xl">{s.emoji}</span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  title={selectedEditElement === `sticker-${s.id}` ? 'Đang chọn' : 'Chọn để chỉnh sửa'}
+                                  onClick={() => setSelectedEditElement(`sticker-${s.id}`)}
+                                  className={`p-1.5 rounded-md transition-colors ${selectedEditElement === `sticker-${s.id}` ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+                                >
+                                  <MousePointer size={14} />
+                                </button>
+                                <button
+                                  title="Xóa sticker"
+                                  onClick={() => {
+                                    setStickers(stickers.filter(st => st.id !== s.id));
+                                    if (selectedEditElement === `sticker-${s.id}`) setSelectedEditElement(null);
+                                  }}
+                                  className="p-1.5 rounded-md text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Draw Tab */}
+                {activeTab === "draw" && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-700">Free Drawing</h3>
+
+                    <ColorPicker
+                      color={brushColor}
+                      onChange={setBrushColor}
+                      label="Brush Color"
+                    />
+
+                    <RangeSlider
+                      label="Brush Size"
+                      value={brushSize}
+                      onChange={setBrushSize}
+                      min={1}
+                      max={50}
+                    />
+
+                    <button
+                      onClick={() => setDrawingPaths([])}
+                      className="w-full py-2 bg-red-50 text-red-600 rounded-md text-xs font-medium hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Trash size={14} /> Clear Drawing
+                    </button>
+
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <p className="text-[11px] text-blue-700 leading-relaxed">
+                        <strong>How to draw:</strong> Use your mouse or finger directly on the photo strip preview to draw.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -987,12 +1315,12 @@ function BackgroundContent() {
                   {/* Photo strip layout */}
                   <div
                     className="w-full h-full relative z-0"
-                    style={{ 
+                    style={{
                       display: 'flex',
                       flexWrap: 'wrap',
                       justifyContent: 'center',
                       alignContent: 'start',
-                      gap: `${stripGap}px` 
+                      gap: `${stripGap}px`
                     }}
                   >
                     {images.map((image, index) => (
@@ -1004,8 +1332,8 @@ function BackgroundContent() {
                           borderRadius: `${borderRadius}px`,
                           border: `${borderWidth}px solid ${borderColor}`,
                           width: printFormat === 'strip' ? '100%' : `calc(50% - ${stripGap / 2}px)`,
-                          height: printFormat === 'strip' 
-                            ? `calc(${100 / images.length}% - ${stripGap}px)` 
+                          height: printFormat === 'strip'
+                            ? `calc(${100 / images.length}% - ${stripGap}px)`
                             : `calc(${100 / Math.ceil(images.length / 2)}% - ${stripGap}px)`,
                           minHeight: '100px'
                         }}
@@ -1045,6 +1373,107 @@ function BackgroundContent() {
                   )}
                 </>
               )}
+
+              {/* Stickers Layer - always interactive */}
+              <div className="absolute inset-0 z-20 overflow-hidden" style={{ pointerEvents: 'none' }}>
+                {stickers.map((sticker) => {
+                  const rotate = sticker.rotate ?? 0;
+                  const isSelected = selectedEditElement === `sticker-${sticker.id}`;
+                  return (
+                    <div
+                      key={sticker.id}
+                      className="absolute"
+                      style={{
+                        left: `${sticker.x}px`,
+                        top: `${sticker.y}px`,
+                        transform: `translate(-50%, -50%) rotate(${rotate}deg) scale(${sticker.scaleX}, ${sticker.scaleY})`,
+                        cursor: 'move',
+                        fontSize: '48px',
+                        userSelect: 'none',
+                        outline: isSelected ? '2px dashed #3b82f6' : 'none',
+                        outlineOffset: '6px',
+                        padding: '8px',
+                        pointerEvents: 'auto',
+                        touchAction: 'none'
+                      }}
+                      onPointerDown={(e) => handleStickerPointerDown(e, sticker.id, 'move')}
+                    >
+                      {sticker.emoji}
+
+                      {isSelected && (
+                        <>
+                          {/* Rotate handle - right center */}
+                          <div
+                            className="absolute flex items-center justify-center"
+                            style={{
+                              top: '50%',
+                              right: '-36px',
+                              transform: 'translateY(-50%)',
+                              width: '24px',
+                              height: '24px',
+                              background: 'white',
+                              borderRadius: '50%',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                              border: '2px solid #3b82f6',
+                              pointerEvents: 'auto',
+                              cursor: 'grab',
+                              touchAction: 'none',
+                              zIndex: 10
+                            }}
+                            onPointerDown={(e) => handleStickerPointerDown(e, sticker.id, 'rotate')}
+                          >
+                            <RotateCcw size={12} color="#3b82f6" />
+                          </div>
+
+                          {/* Resize handle - bottom right */}
+                          <div
+                            className="absolute flex items-center justify-center"
+                            style={{
+                              bottom: '-10px',
+                              right: '-10px',
+                              width: '22px',
+                              height: '22px',
+                              background: '#3b82f6',
+                              borderRadius: '50%',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                              border: '2px solid white',
+                              pointerEvents: 'auto',
+                              cursor: 'se-resize',
+                              touchAction: 'none',
+                              fontSize: '10px',
+                              color: 'white'
+                            }}
+                            onPointerDown={(e) => handleStickerPointerDown(e, sticker.id, 'resize')}
+                          >
+                            <Move size={11} color="white" />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Drawing Layer - Topmost, only active in draw tab */}
+              <canvas
+                ref={(el) => {
+                  canvasRef.current = el;
+                  if (el && el.width === 0) {
+                    el.width = el.offsetWidth || 300;
+                    el.height = el.offsetHeight || 400;
+                  }
+                }}
+                className="absolute inset-0 z-30 w-full h-full"
+                style={{
+                  cursor: activeTab === 'draw' ? 'crosshair' : 'default',
+                  pointerEvents: activeTab === 'draw' ? 'auto' : 'none',
+                  touchAction: 'none'
+                }}
+                onPointerDown={handleCanvasPointerDown}
+                onPointerMove={handleCanvasPointerMove}
+                onPointerUp={handleCanvasPointerUp}
+                onPointerLeave={handleCanvasPointerUp}
+              />
             </div>
           </div>
         </div>

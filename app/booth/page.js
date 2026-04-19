@@ -8,6 +8,7 @@ import { Camera } from 'lucide-react';
 export default function BoothSelection() {
   const router = useRouter();
   const [selectedShots, setSelectedShots] = useState(4);
+  const [printFormat, setPrintFormat] = useState('strip'); // 'strip' or 'postcard'
   const [exitAnimation, setExitAnimation] = useState(false);
   const [showWatermark, setShowWatermark] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +26,14 @@ export default function BoothSelection() {
     if (savedShots) {
       setSelectedShots(parseInt(savedShots));
     }
-  }, [setSelectedShots]); // Add `setSelectedShots` to the dependency array
+  }, [setSelectedShots]);
+
+  // Auto-switch format based on shot count
+  useEffect(() => {
+    if (selectedShots >= 5 && printFormat === 'strip') {
+      setPrintFormat('postcard');
+    }
+  }, [selectedShots, printFormat]);
 
   const toggleWatermark = () => {
     setShowWatermark(prev => !prev);
@@ -33,8 +41,9 @@ export default function BoothSelection() {
 
   const handleContinue = () => {
     if (selectedShots) {
-      // Store the selected shot count in localStorage
+      // Store the selected shot count and print format in localStorage
       localStorage.setItem('selectedShots', selectedShots.toString());
+      localStorage.setItem('printFormat', printFormat);
 
       // Start exit animation and show loader
       setExitAnimation(true);
@@ -356,6 +365,63 @@ export default function BoothSelection() {
                 <span key={n} className={`text-[10px] ${selectedShots === n ? 'text-blue-500 font-bold' : 'text-gray-300'}`}>{n}</span>
               ))}
             </div>
+          </div>
+        </motion.div>
+
+        {/* Print Format Selection */}
+        <motion.div variants={fadeIn} className="mb-8 w-full">
+          <h3 className="text-sm font-medium text-gray-700 mb-4 text-center uppercase tracking-wider">Kích thước in</h3>
+          <div className="grid grid-cols-1 gap-3">
+            <button
+              onClick={() => setPrintFormat("strip")}
+              disabled={selectedShots >= 5}
+              className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
+                selectedShots >= 5 
+                  ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed" 
+                  : printFormat === "strip" 
+                    ? "border-blue-500 bg-blue-50 shadow-sm" 
+                    : "border-gray-100 bg-white hover:border-gray-200"
+              }`}
+            >
+              <div className="flex items-center mb-1">
+                <div className={`w-4 h-4 rounded-full mr-3 flex items-center justify-center border ${
+                  selectedShots >= 5 
+                    ? "border-gray-200" 
+                    : printFormat === "strip" 
+                      ? "border-blue-500" 
+                      : "border-gray-300"
+                }`}>
+                  {printFormat === "strip" && selectedShots < 5 && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+                </div>
+                <span className={`text-sm font-bold ${
+                  selectedShots >= 5 
+                    ? "text-gray-400" 
+                    : printFormat === "strip" 
+                      ? "text-blue-700" 
+                      : "text-gray-700"
+                }`}>Dải ảnh đứng (Strip)</span>
+              </div>
+              <p className="text-[11px] text-gray-500 leading-relaxed ml-7">
+                {selectedShots >= 5 
+                  ? "Dải ảnh đứng chỉ hỗ trợ tối đa 4 ảnh." 
+                  : "Kích thước 2x6 inch, phổ biến cho máy lấy liền, 1 tờ 4x6 in ra 2 dải."}
+              </p>
+            </button>
+
+            <button
+              onClick={() => setPrintFormat("postcard")}
+              className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${printFormat === "postcard" ? "border-blue-500 bg-blue-50 shadow-sm" : "border-gray-100 bg-white hover:border-gray-200"}`}
+            >
+              <div className="flex items-center mb-1">
+                <div className={`w-4 h-4 rounded-full mr-3 flex items-center justify-center border ${printFormat === "postcard" ? "border-blue-500" : "border-gray-300"}`}>
+                  {printFormat === "postcard" && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+                </div>
+                <span className={`text-sm font-bold ${printFormat === "postcard" ? "text-blue-700" : "text-gray-700"}`}>Ảnh đơn (Postcard)</span>
+              </div>
+              <p className="text-[11px] text-gray-500 leading-relaxed ml-7">
+                Kích thước 4x6 inch, tiêu chuẩn ảnh postcard thông thường.
+              </p>
+            </button>
           </div>
         </motion.div>
 
