@@ -107,7 +107,7 @@ function BackgroundContent() {
     // Determine format: 1, 2, 6, 8 -> postcard (4x6). Others -> strip (2x4).
     const isPostcard = [1, 2, 6, 8].includes(images.length);
     setPrintFormat(isPostcard ? "postcard" : "strip");
-    
+
     if (images.length >= 5) {
       setStripWidth(500);
       setCardColor("#111111");
@@ -145,17 +145,17 @@ function BackgroundContent() {
     }
   };
 
-  const currentTransform = selectedEditElement === 'frame' 
-    ? frameTransform 
+  const currentTransform = selectedEditElement === 'frame'
+    ? frameTransform
     : (imageTransforms[parseInt(selectedEditElement?.split('-')[1])] || { x: 0, y: 0, scaleX: 1, scaleY: 1 });
 
   const handlePointerDown = (e, mode) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Get the base width and height of the bounding box
     const rect = e.target.parentElement.getBoundingClientRect();
-    
+
     setDragState({
       isDragging: true,
       mode: mode,
@@ -207,19 +207,19 @@ function BackgroundContent() {
         // Re-calculate the actual dx/dy that contributed to the scale change to avoid drift
         let actualDx = dx;
         let actualDy = dy;
-        
+
         if (dragState.mode === 'resize-br') {
-           actualDx = (clampedScaleX - newTransform.scaleX) * W;
-           actualDy = (clampedScaleY - newTransform.scaleY) * H;
+          actualDx = (clampedScaleX - newTransform.scaleX) * W;
+          actualDy = (clampedScaleY - newTransform.scaleY) * H;
         } else if (dragState.mode === 'resize-bl') {
-           actualDx = -(clampedScaleX - newTransform.scaleX) * W;
-           actualDy = (clampedScaleY - newTransform.scaleY) * H;
+          actualDx = -(clampedScaleX - newTransform.scaleX) * W;
+          actualDy = (clampedScaleY - newTransform.scaleY) * H;
         } else if (dragState.mode === 'resize-tr') {
-           actualDx = (clampedScaleX - newTransform.scaleX) * W;
-           actualDy = -(clampedScaleY - newTransform.scaleY) * H;
+          actualDx = (clampedScaleX - newTransform.scaleX) * W;
+          actualDy = -(clampedScaleY - newTransform.scaleY) * H;
         } else if (dragState.mode === 'resize-tl') {
-           actualDx = -(clampedScaleX - newTransform.scaleX) * W;
-           actualDy = -(clampedScaleY - newTransform.scaleY) * H;
+          actualDx = -(clampedScaleX - newTransform.scaleX) * W;
+          actualDy = -(clampedScaleY - newTransform.scaleY) * H;
         }
 
         // Always move center by half the actual delta width/height to keep opposite corner fixed
@@ -476,7 +476,7 @@ function BackgroundContent() {
             <div className="flex flex-1 min-h-[400px] overflow-hidden">
               {/* Vertical Tabs */}
               <div className="w-20 bg-gray-50 border-r border-gray-100 flex flex-col pt-2 overflow-y-auto hide-scrollbar">
-                <button 
+                <button
                   onClick={() => setActiveTab("frames")}
                   className={`flex flex-col items-center justify-center py-4 px-2 text-[11px] font-medium border-l-[3px] transition-colors ${activeTab === "frames" ? "border-blue-500 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:bg-gray-200 hover:text-gray-700"}`}
                 >
@@ -505,271 +505,271 @@ function BackgroundContent() {
               {/* Tab content container */}
               <div className="flex-1 overflow-y-auto p-4 bg-white hide-scrollbar">
                 {/* Frames Tab */}
-              {activeTab === "frames" && (
-                <div className="space-y-4">
+                {activeTab === "frames" && (
+                  <div className="space-y-4">
 
-                  <div>
-                    <h3 className="text-sm font-medium mb-2 text-gray-700">Custom Frame Overlay</h3>
-                    <div className="p-4 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center bg-gray-50 text-center">
-                      {customFrameSrc ? (
-                        <div className="flex flex-col items-center w-full">
-                          <p className="text-xs text-green-600 mb-2 font-medium">Custom frame applied!</p>
-                          <button 
-                            onClick={() => {
-                              setCustomFrameSrc(null);
-                              setFrameTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
-                              setImageTransforms(new Array(images.length).fill({ x: 0, y: 0, scaleX: 1, scaleY: 1 }));
-                            }}
-                            className="text-xs text-red-500 hover:text-red-700 underline mb-4"
-                          >
-                            Remove Frame
-                          </button>
+                    <div>
+                      <h3 className="text-sm font-medium mb-2 text-gray-700">Custom Frame Overlay</h3>
+                      <div className="p-4 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center bg-gray-50 text-center">
+                        {customFrameSrc ? (
+                          <div className="flex flex-col items-center w-full">
+                            <p className="text-xs text-green-600 mb-2 font-medium">Custom frame applied!</p>
+                            <button
+                              onClick={() => {
+                                setCustomFrameSrc(null);
+                                setFrameTransform({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
+                                setImageTransforms(new Array(images.length).fill({ x: 0, y: 0, scaleX: 1, scaleY: 1 }));
+                              }}
+                              className="text-xs text-red-500 hover:text-red-700 underline mb-4"
+                            >
+                              Remove Frame
+                            </button>
 
-                          <div className="w-full border-t border-gray-200 pt-4 mt-2">
-                            <h4 className="text-sm font-medium mb-3 text-gray-700 text-left">Adjustments</h4>
-                            
-                            <div className="flex flex-col gap-2 mb-4">
-                              <select 
-                                value={selectedEditElement}
-                                onChange={(e) => setSelectedEditElement(e.target.value)}
-                                className="w-full p-2 bg-white border border-gray-300 rounded-md text-sm text-gray-800"
-                              >
-                                <option value="frame">Custom Frame Overlay</option>
-                                {images.map((_, i) => (
-                                  <option key={i} value={`photo-${i}`}>Photo {i + 1}</option>
-                                ))}
-                              </select>
+                            <div className="w-full border-t border-gray-200 pt-4 mt-2">
+                              <h4 className="text-sm font-medium mb-3 text-gray-700 text-left">Adjustments</h4>
 
-                              <div className="flex gap-2">
-                                <button 
-                                  onClick={() => {
-                                    const elements = ['frame', ...images.map((_, i) => `photo-${i}`)];
-                                    const idx = elements.indexOf(selectedEditElement);
-                                    const prevIdx = (idx - 1 + elements.length) % elements.length;
-                                    setSelectedEditElement(elements[prevIdx]);
-                                  }}
-                                  className="flex-1 p-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center justify-center text-gray-600 text-xs font-medium"
-                                  aria-label="Previous element"
+                              <div className="flex flex-col gap-2 mb-4">
+                                <select
+                                  value={selectedEditElement}
+                                  onChange={(e) => setSelectedEditElement(e.target.value)}
+                                  className="w-full p-2 bg-white border border-gray-300 rounded-md text-sm text-gray-800"
                                 >
-                                  ← Prev
-                                </button>
-                                
-                                <button 
-                                  onClick={() => {
-                                    const elements = ['frame', ...images.map((_, i) => `photo-${i}`)];
-                                    const idx = elements.indexOf(selectedEditElement);
-                                    const nextIdx = (idx + 1) % elements.length;
-                                    setSelectedEditElement(elements[nextIdx]);
-                                  }}
-                                  className="flex-1 p-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center justify-center text-gray-600 text-xs font-medium"
-                                  aria-label="Next element"
-                                >
-                                  Next →
-                                </button>
+                                  <option value="frame">Custom Frame Overlay</option>
+                                  {images.map((_, i) => (
+                                    <option key={i} value={`photo-${i}`}>Photo {i + 1}</option>
+                                  ))}
+                                </select>
+
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => {
+                                      const elements = ['frame', ...images.map((_, i) => `photo-${i}`)];
+                                      const idx = elements.indexOf(selectedEditElement);
+                                      const prevIdx = (idx - 1 + elements.length) % elements.length;
+                                      setSelectedEditElement(elements[prevIdx]);
+                                    }}
+                                    className="flex-1 p-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center justify-center text-gray-600 text-xs font-medium"
+                                    aria-label="Previous element"
+                                  >
+                                    ← Prev
+                                  </button>
+
+                                  <button
+                                    onClick={() => {
+                                      const elements = ['frame', ...images.map((_, i) => `photo-${i}`)];
+                                      const idx = elements.indexOf(selectedEditElement);
+                                      const nextIdx = (idx + 1) % elements.length;
+                                      setSelectedEditElement(elements[nextIdx]);
+                                    }}
+                                    className="flex-1 p-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center justify-center text-gray-600 text-xs font-medium"
+                                    aria-label="Next element"
+                                  >
+                                    Next →
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="text-left text-sm text-gray-500 mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                                <p>👉 <strong>Select an element</strong> from the dropdown.</p>
+                                <p className="mt-1">👉 <strong>Drag</strong> it on the preview area to move.</p>
+                                <p className="mt-1">👉 <strong>Drag the corners</strong> to resize or stretch.</p>
                               </div>
                             </div>
-
-                            <div className="text-left text-sm text-gray-500 mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                              <p>👉 <strong>Select an element</strong> from the dropdown.</p>
-                              <p className="mt-1">👉 <strong>Drag</strong> it on the preview area to move.</p>
-                              <p className="mt-1">👉 <strong>Drag the corners</strong> to resize or stretch.</p>
-                            </div>
                           </div>
+                        ) : (
+                          <>
+                            <FileImage size={24} className="text-gray-400 mb-2" />
+                            <p className="text-xs text-gray-500 mb-3">Upload a PNG file with transparent cutouts</p>
+                            <label className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:bg-gray-50 transition">
+                              Select File
+                              <input
+                                type="file"
+                                accept="image/png"
+                                className="hidden"
+                                onChange={handleFrameUpload}
+                              />
+                            </label>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* Colors Tab */}
+                {activeTab === "colors" && (
+                  <div className="space-y-4">
+                    {/* Background Color selection */}
+                    <ColorPicker
+                      color={cardColor}
+                      onChange={setCardColor}
+                      label="Background Color"
+                    />
+
+                    {/* Color presets */}
+                    <div className="mb-4">
+                      <h3 className="text-xs font-medium mb-2 text-gray-500">Presets</h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {colorPresets.map((color, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setCardColor(color)}
+                            className="w-6 h-6 rounded-full border hover:scale-110 transition"
+                            style={{
+                              backgroundColor: color,
+                              borderColor: color === "#ffffff" ? "#e0e0e0" : "white"
+                            }}
+                            aria-label={`Color preset: ${color}`}
+                          ></button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Border Color */}
+                    <ColorPicker
+                      color={borderColor}
+                      onChange={setBorderColor}
+                      label="Border Color"
+                    />
+                  </div>
+                )}
+
+                {/* Layout Tab */}
+                {activeTab === "layout" && (
+                  <div className="space-y-3">
+                    <RangeSlider
+                      label="Strip Width"
+                      value={stripWidth}
+                      onChange={setStripWidth}
+                      min={200}
+                      max={800}
+                    />
+
+                    <RangeSlider
+                      label="Photo Spacing"
+                      value={stripGap}
+                      onChange={setStripGap}
+                      min={4}
+                      max={24}
+                    />
+
+                    <RangeSlider
+                      label="Strip Padding"
+                      value={stripPadding}
+                      onChange={setStripPadding}
+                      min={8}
+                      max={40}
+                    />
+
+                    <RangeSlider
+                      label="Border Radius"
+                      value={borderRadius}
+                      onChange={setBorderRadius}
+                      min={0}
+                      max={24}
+                    />
+
+                    <RangeSlider
+                      label="Border Width"
+                      value={borderWidth}
+                      onChange={setBorderWidth}
+                      min={0}
+                      max={8}
+                    />
+                  </div>
+                )}
+
+                {/* Extras Tab */}
+                {activeTab === "extras" && (
+                  <div className="space-y-3">
+                    {/* Date format options */}
+                    <div>
+                      <h3 className="text-xs font-medium mb-2 text-gray-700">Date Format</h3>
+                      <div className="grid grid-cols-1 gap-1.5">
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            id="dateNone"
+                            checked={!showDate}
+                            onChange={() => setShowDate(false)}
+                            className="mr-2"
+                          />
+                          <label htmlFor="dateNone" className="text-xs text-gray-600">No date</label>
                         </div>
-                      ) : (
-                        <>
-                          <FileImage size={24} className="text-gray-400 mb-2" />
-                          <p className="text-xs text-gray-500 mb-3">Upload a PNG file with transparent cutouts</p>
-                          <label className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer hover:bg-gray-50 transition">
-                            Select File
-                            <input 
-                              type="file" 
-                              accept="image/png" 
-                              className="hidden" 
-                              onChange={handleFrameUpload}
-                            />
-                          </label>
-                        </>
-                      )}
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            id="dateShort"
+                            checked={showDate && dateFormat === "short"}
+                            onChange={() => { setShowDate(true); setDateFormat("short") }}
+                            className="mr-2"
+                          />
+                          <label htmlFor="dateShort" className="text-xs text-gray-600">Short ({dateFormats.short})</label>
+                        </div>
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            id="dateLong"
+                            checked={showDate && dateFormat === "long"}
+                            onChange={() => { setShowDate(true); setDateFormat("long") }}
+                            className="mr-2"
+                          />
+                          <label htmlFor="dateLong" className="text-xs text-gray-600">Long</label>
+                        </div>
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            id="dateTime"
+                            checked={showDate && dateFormat === "time"}
+                            onChange={() => { setShowDate(true); setDateFormat("time") }}
+                            className="mr-2"
+                          />
+                          <label htmlFor="dateTime" className="text-xs text-gray-600">Date & Time</label>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
-              {/* Colors Tab */}
-              {activeTab === "colors" && (
-                <div className="space-y-4">
-                  {/* Background Color selection */}
-                  <ColorPicker
-                    color={cardColor}
-                    onChange={setCardColor}
-                    label="Background Color"
-                  />
 
-                  {/* Color presets */}
-                  <div className="mb-4">
-                    <h3 className="text-xs font-medium mb-2 text-gray-500">Presets</h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      {colorPresets.map((color, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setCardColor(color)}
-                          className="w-6 h-6 rounded-full border hover:scale-110 transition"
-                          style={{
-                            backgroundColor: color,
-                            borderColor: color === "#ffffff" ? "#e0e0e0" : "white"
-                          }}
-                          aria-label={`Color preset: ${color}`}
-                        ></button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Border Color */}
-                  <ColorPicker
-                    color={borderColor}
-                    onChange={setBorderColor}
-                    label="Border Color"
-                  />
-                </div>
-              )}
-
-              {/* Layout Tab */}
-              {activeTab === "layout" && (
-                <div className="space-y-3">
-                  <RangeSlider
-                    label="Strip Width"
-                    value={stripWidth}
-                    onChange={setStripWidth}
-                    min={200}
-                    max={800}
-                  />
-
-                  <RangeSlider
-                    label="Photo Spacing"
-                    value={stripGap}
-                    onChange={setStripGap}
-                    min={4}
-                    max={24}
-                  />
-
-                  <RangeSlider
-                    label="Strip Padding"
-                    value={stripPadding}
-                    onChange={setStripPadding}
-                    min={8}
-                    max={40}
-                  />
-
-                  <RangeSlider
-                    label="Border Radius"
-                    value={borderRadius}
-                    onChange={setBorderRadius}
-                    min={0}
-                    max={24}
-                  />
-
-                  <RangeSlider
-                    label="Border Width"
-                    value={borderWidth}
-                    onChange={setBorderWidth}
-                    min={0}
-                    max={8}
-                  />
-                </div>
-              )}
-
-              {/* Extras Tab */}
-              {activeTab === "extras" && (
-                <div className="space-y-3">
-                  {/* Date format options */}
-                  <div>
-                    <h3 className="text-xs font-medium mb-2 text-gray-700">Date Format</h3>
-                    <div className="grid grid-cols-1 gap-1.5">
-                      <div className="flex items-center">
+                    {/* Font Color Picker */}
+                    <div>
+                      <h3 className="text-xs font-medium mb-2 text-gray-700">Date Font Color</h3>
+                      <div className="flex items-center gap-2">
+                        {/* Color Preview */}
+                        <div
+                          className="w-6 h-6 rounded-lg border border-gray-200"
+                          style={{ backgroundColor: dateFontColor }}
+                          aria-label={`Date font color preview: ${dateFontColor}`}
+                        ></div>
+                        {/* Color Input */}
                         <input
-                          type="radio"
-                          id="dateNone"
-                          checked={!showDate}
-                          onChange={() => setShowDate(false)}
-                          className="mr-2"
+                          type="color"
+                          value={dateFontColor}
+                          onChange={(e) => setDateFontColor(e.target.value)}
+                          className="w-full h-6 cursor-pointer rounded"
+                          aria-label="Date font color picker"
                         />
-                        <label htmlFor="dateNone" className="text-xs text-gray-600">No date</label>
                       </div>
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          id="dateShort"
-                          checked={showDate && dateFormat === "short"}
-                          onChange={() => { setShowDate(true); setDateFormat("short") }}
-                          className="mr-2"
-                        />
-                        <label htmlFor="dateShort" className="text-xs text-gray-600">Short ({dateFormats.short})</label>
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          id="dateLong"
-                          checked={showDate && dateFormat === "long"}
-                          onChange={() => { setShowDate(true); setDateFormat("long") }}
-                          className="mr-2"
-                        />
-                        <label htmlFor="dateLong" className="text-xs text-gray-600">Long</label>
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          id="dateTime"
-                          checked={showDate && dateFormat === "time"}
-                          onChange={() => { setShowDate(true); setDateFormat("time") }}
-                          className="mr-2"
-                        />
-                        <label htmlFor="dateTime" className="text-xs text-gray-600">Date & Time</label>
+                      {/* Preset Colors */}
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {fontColorPresets.map((color, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setDateFontColor(color)}
+                            className="w-5 h-5 rounded-full border hover:scale-110 transition"
+                            style={{
+                              backgroundColor: color,
+                              borderColor: color === "#ffffff" ? "#e0e0e0" : "white"
+                            }}
+                            aria-label={`Font color preset: ${color}`}
+                          ></button>
+                        ))}
                       </div>
                     </div>
                   </div>
-
-                  {/* Font Color Picker */}
-                  <div>
-                    <h3 className="text-xs font-medium mb-2 text-gray-700">Date Font Color</h3>
-                    <div className="flex items-center gap-2">
-                      {/* Color Preview */}
-                      <div
-                        className="w-6 h-6 rounded-lg border border-gray-200"
-                        style={{ backgroundColor: dateFontColor }}
-                        aria-label={`Date font color preview: ${dateFontColor}`}
-                      ></div>
-                      {/* Color Input */}
-                      <input
-                        type="color"
-                        value={dateFontColor}
-                        onChange={(e) => setDateFontColor(e.target.value)}
-                        className="w-full h-6 cursor-pointer rounded"
-                        aria-label="Date font color picker"
-                      />
-                    </div>
-                    {/* Preset Colors */}
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {fontColorPresets.map((color, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setDateFontColor(color)}
-                          className="w-5 h-5 rounded-full border hover:scale-110 transition"
-                          style={{
-                            backgroundColor: color,
-                            borderColor: color === "#ffffff" ? "#e0e0e0" : "white"
-                          }}
-                          aria-label={`Font color preset: ${color}`}
-                        ></button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-            
-          {/* Action buttons - Simplified */}
-          <div className="p-4 border-t border-gray-100 bg-gray-50 space-y-2">
+
+            {/* Action buttons - Simplified */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50 space-y-2">
               {saveSuccess && (
                 <div className="bg-green-50 text-green-700 text-xs p-1.5 rounded mb-2 text-center">
                   Photo strip saved successfully!
@@ -802,31 +802,30 @@ function BackgroundContent() {
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Photo Strip with preview area */}
-        <div className="flex-1 flex justify-center items-center overflow-auto p-4">
+          {/* Photo Strip with preview area */}
+          <div className="flex-1 flex justify-center items-center overflow-auto p-4">
             <div
               ref={photoStripRef}
               className="relative rounded-lg shadow-sm transition-all duration-300 flex flex-col justify-center items-center"
               style={
-                customFrameSrc 
+                customFrameSrc
                   ? {
-                      // Custom frame mode overrides
-                      width: stripMinimized ? (printFormat === 'strip' ? '120px' : '240px') : (printFormat === 'strip' ? '250px' : '500px'),
-                      aspectRatio: printFormat === 'strip' ? '2/6' : '4/6',
-                      transform: stripMinimized ? 'scale(0.8)' : 'scale(1)',
-                      transformOrigin: 'top center',
-                      backgroundColor: 'transparent',
-                    }
-                  : { 
-                      // Normal mode
-                      backgroundColor: cardColor,
-                      padding: `${stripPadding}px`,
-                      width: stripMinimized ? '160px' : `${stripWidth}px`,
-                      transform: stripMinimized ? 'scale(0.6)' : 'scale(1)',
-                      transformOrigin: 'top center'
-                    }
+                    // Custom frame mode overrides
+                    width: stripMinimized ? (printFormat === 'strip' ? '120px' : '240px') : (printFormat === 'strip' ? '250px' : '500px'),
+                    aspectRatio: printFormat === 'strip' ? '2/6' : '4/6',
+                    transform: stripMinimized ? 'scale(0.8)' : 'scale(1)',
+                    transformOrigin: 'top center',
+                    backgroundColor: 'transparent',
+                  }
+                  : {
+                    // Normal mode
+                    backgroundColor: cardColor,
+                    padding: `${stripPadding}px`,
+                    width: stripMinimized ? '160px' : `${stripWidth}px`,
+                    transform: stripMinimized ? 'scale(0.6)' : 'scale(1)',
+                    transformOrigin: 'top center'
+                  }
               }
             >
               {customFrameSrc ? (
@@ -835,12 +834,12 @@ function BackgroundContent() {
                   <div className="absolute inset-0 overflow-hidden rounded-lg z-0">
                     {/* Photo Grid underneath the custom frame */}
                     <div className="absolute inset-0" style={{
-                        display: 'grid',
-                        gridTemplateColumns: printFormat === 'strip' ? '1fr' : 'repeat(2, 1fr)',
-                        gridTemplateRows: `repeat(${Math.ceil(images.length / (printFormat === 'strip' ? 1 : 2)) || 1}, 1fr)`,
-                        gap: '0px'
+                      display: 'grid',
+                      gridTemplateColumns: printFormat === 'strip' ? '1fr' : 'repeat(2, 1fr)',
+                      gridTemplateRows: `repeat(${Math.ceil(images.length / (printFormat === 'strip' ? 1 : 2)) || 1}, 1fr)`,
+                      gap: '0px'
                     }}>
-                     {images.map((image, index) => {
+                      {images.map((image, index) => {
                         const imgTransform = imageTransforms[index] || { x: 0, y: 0, scaleX: 1, scaleY: 1 };
                         return (
                           <div key={index} className="relative w-full h-full bg-transparent" data-filter={image.filter}>
@@ -850,92 +849,92 @@ function BackgroundContent() {
                               height: '100%',
                               position: 'relative'
                             }}>
-                              <NextImage 
-                                 src={image.src} 
-                                 alt={`Photo ${index + 1}`}
-                                 fill
-                                 style={{
-                                   objectFit: "cover",
-                                   ...filterStyles[image.filter],
-                                   transform: "scaleX(-1)"
-                                 }}
-                                 data-filter={image.filter}
+                              <NextImage
+                                src={image.src}
+                                alt={`Photo ${index + 1}`}
+                                fill
+                                style={{
+                                  objectFit: "cover",
+                                  ...filterStyles[image.filter],
+                                  transform: "scaleX(-1)"
+                                }}
+                                data-filter={image.filter}
                               />
                             </div>
                           </div>
                         );
-                     })}
-                  </div>
+                      })}
+                    </div>
 
-                  {/* The transparent PNG overlay */}
-                  <div className="absolute inset-0 z-10 pointer-events-none" style={{
-                       transform: `translate(${frameTransform.x}px, ${frameTransform.y}px) scale(${frameTransform.scaleX}, ${frameTransform.scaleY})`
-                  }}>
-                    <img 
-                       src={customFrameSrc} 
-                       alt="Custom Frame Overlay" 
-                       className="w-full h-full pointer-events-none" 
-                    />
-                  </div>
+                    {/* The transparent PNG overlay */}
+                    <div className="absolute inset-0 z-10 pointer-events-none" style={{
+                      transform: `translate(${frameTransform.x}px, ${frameTransform.y}px) scale(${frameTransform.scaleX}, ${frameTransform.scaleY})`
+                    }}>
+                      <img
+                        src={customFrameSrc}
+                        alt="Custom Frame"
+                        className="w-full h-full pointer-events-none"
+                      />
+                    </div>
                   </div>
 
                   {/* Interactive Overlays Container (Top-most layer) */}
                   <div className="absolute inset-0 z-50 pointer-events-none">
-                     {/* Frame Interactive Box */}
-                     {selectedEditElement === 'frame' && (
-                       <div 
-                         className="absolute inset-0 border-2 border-dashed border-blue-500 bg-blue-500/10 cursor-move pointer-events-auto"
-                         style={{
-                           transform: `translate(${frameTransform.x}px, ${frameTransform.y}px) scale(${frameTransform.scaleX}, ${frameTransform.scaleY})`
-                         }}
-                         onMouseDown={(e) => handlePointerDown(e, 'move')}
-                       >
-                         {/* Resize Handles */}
-                         <div className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-tl')} />
-                         <div className="absolute -top-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-tr')} />
-                         <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-bl')} />
-                         <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-br')} />
-                       </div>
-                     )}
+                    {/* Frame Interactive Box */}
+                    {selectedEditElement === 'frame' && (
+                      <div
+                        className="absolute inset-0 border-2 border-dashed border-blue-500 bg-blue-500/10 cursor-move pointer-events-auto"
+                        style={{
+                          transform: `translate(${frameTransform.x}px, ${frameTransform.y}px) scale(${frameTransform.scaleX}, ${frameTransform.scaleY})`
+                        }}
+                        onMouseDown={(e) => handlePointerDown(e, 'move')}
+                      >
+                        {/* Resize Handles */}
+                        <div className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-tl')} />
+                        <div className="absolute -top-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-tr')} />
+                        <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-bl')} />
+                        <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-br')} />
+                      </div>
+                    )}
 
-                     {/* Photos Interactive Boxes */}
-                     {images.map((_, i) => {
-                       if (selectedEditElement !== `photo-${i}`) return null;
-                       const imgTransform = imageTransforms[i] || { x: 0, y: 0, scaleX: 1, scaleY: 1 };
-                       
-                       // Calculate grid cell bounds
-                       const cols = printFormat === 'strip' ? 1 : 2;
-                       const rows = Math.ceil(images.length / cols) || 1;
-                       const row = Math.floor(i / cols);
-                       const col = i % cols;
-                       
-                       const top = `${(row * 100) / rows}%`;
-                       const left = `${(col * 100) / cols}%`;
-                       const width = `${100 / cols}%`;
-                       const height = `${100 / rows}%`;
+                    {/* Photos Interactive Boxes */}
+                    {images.map((_, i) => {
+                      if (selectedEditElement !== `photo-${i}`) return null;
+                      const imgTransform = imageTransforms[i] || { x: 0, y: 0, scaleX: 1, scaleY: 1 };
 
-                       return (
-                         <div 
-                           key={`overlay-${i}`}
-                           className="absolute"
-                           style={{ top, left, width, height }}
-                         >
-                           <div 
-                             className="absolute inset-0 border-2 border-dashed border-blue-500 bg-blue-500/10 cursor-move pointer-events-auto"
-                             style={{
-                               transform: `translate(${imgTransform.x}px, ${imgTransform.y}px) scale(${imgTransform.scaleX}, ${imgTransform.scaleY})`
-                             }}
-                             onMouseDown={(e) => handlePointerDown(e, 'move')}
-                           >
-                              {/* Resize Handles */}
-                              <div className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-tl')} />
-                              <div className="absolute -top-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-tr')} />
-                              <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-bl')} />
-                              <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-br')} />
-                           </div>
-                         </div>
-                       );
-                     })}
+                      // Calculate grid cell bounds
+                      const cols = printFormat === 'strip' ? 1 : 2;
+                      const rows = Math.ceil(images.length / cols) || 1;
+                      const row = Math.floor(i / cols);
+                      const col = i % cols;
+
+                      const top = `${(row * 100) / rows}%`;
+                      const left = `${(col * 100) / cols}%`;
+                      const width = `${100 / cols}%`;
+                      const height = `${100 / rows}%`;
+
+                      return (
+                        <div
+                          key={`overlay-${i}`}
+                          className="absolute"
+                          style={{ top, left, width, height }}
+                        >
+                          <div
+                            className="absolute inset-0 border-2 border-dashed border-blue-500 bg-blue-500/10 cursor-move pointer-events-auto"
+                            style={{
+                              transform: `translate(${imgTransform.x}px, ${imgTransform.y}px) scale(${imgTransform.scaleX}, ${imgTransform.scaleY})`
+                            }}
+                            onMouseDown={(e) => handlePointerDown(e, 'move')}
+                          >
+                            {/* Resize Handles */}
+                            <div className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-tl')} />
+                            <div className="absolute -top-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-tr')} />
+                            <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-bl')} />
+                            <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize" onMouseDown={(e) => handlePointerDown(e, 'resize-br')} />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </>
               ) : (
@@ -971,12 +970,12 @@ function BackgroundContent() {
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* Date stamp at bottom - only show if enabled */}
                   {showDate && (
-                    <div 
+                    <div
                       className="text-center mt-1"
-                      style={{ 
+                      style={{
                         color: dateFontColor,
                         fontSize: stripMinimized ? '9px' : '11px',
                         lineHeight: '1',
@@ -989,10 +988,10 @@ function BackgroundContent() {
                   )}
                 </>
               )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </main>
   );
 }
