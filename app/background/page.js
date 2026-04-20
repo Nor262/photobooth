@@ -1403,8 +1403,8 @@ function BackgroundContent() {
                     {/* Photo Grid underneath the custom frame */}
                     <div className="absolute inset-0" style={{
                       display: 'grid',
-                      gridTemplateColumns: printFormat === 'strip' ? '1fr' : 'repeat(2, 1fr)',
-                      gridTemplateRows: `repeat(${Math.ceil(images.length / (printFormat === 'strip' ? 1 : 2)) || 1}, 1fr)`,
+                      gridTemplateColumns: printFormat === 'strip' || (printFormat === 'postcard' && images.length <= 2) ? '1fr' : 'repeat(2, 1fr)',
+                      gridTemplateRows: `repeat(${Math.ceil(images.length / (printFormat === 'strip' || (printFormat === 'postcard' && images.length <= 2) ? 1 : 2)) || 1}, 1fr)`,
                       gap: '0px'
                     }}>
                       {images.map((image, index) => {
@@ -1473,7 +1473,7 @@ function BackgroundContent() {
                       const imgTransform = imageTransforms[i] || { x: 0, y: 0, scaleX: 1, scaleY: 1 };
 
                       // Calculate grid cell bounds
-                      const cols = printFormat === 'strip' ? 1 : 2;
+                      const cols = printFormat === 'strip' || (printFormat === 'postcard' && images.length <= 2) ? 1 : 2;
                       const rows = Math.ceil(images.length / cols) || 1;
                       const row = Math.floor(i / cols);
                       const col = i % cols;
@@ -1528,8 +1528,8 @@ function BackgroundContent() {
                         style={{
                           borderRadius: `${borderRadius}px`,
                           border: `${borderWidth}px solid ${borderColor}`,
-                          width: printFormat === 'strip' ? '100%' : `calc(50% - ${stripGap / 2}px)`,
-                          height: printFormat === 'strip'
+                          width: printFormat === 'strip' || (printFormat === 'postcard' && images.length <= 2) ? '100%' : `calc(50% - ${stripGap / 2}px)`,
+                          height: printFormat === 'strip' || (printFormat === 'postcard' && images.length <= 2)
                             ? `calc(${100 / images.length}% - ${stripGap}px)`
                             : `calc(${100 / Math.ceil(images.length / 2)}% - ${stripGap}px)`,
                           minHeight: '100px'
