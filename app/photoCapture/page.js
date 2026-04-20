@@ -24,6 +24,33 @@ function PhotoCaptureContent() {
   const [cursorVisible, setCursorVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [exitAnimation, setExitAnimation] = useState(false);
+  const [customFilterValues, setCustomFilterValues] = useState({
+    blur: 0,
+    brightness: 1,
+    contrast: 1,
+    grayscale: 0,
+    hueRotate: 0,
+    invert: 0,
+    opacity: 1,
+    saturate: 1,
+    sepia: 0
+  });
+  const [filterTab, setFilterTab] = useState("presets"); // "presets" or "adjust"
+
+  const generateCustomFilterString = useCallback((values) => {
+    const { blur, brightness, contrast, grayscale, hueRotate, invert, opacity, saturate, sepia } = values;
+    let filter = "";
+    if (blur > 0) filter += `blur(${blur}px) `;
+    if (brightness !== 1) filter += `brightness(${brightness}) `;
+    if (contrast !== 1) filter += `contrast(${contrast}) `;
+    if (grayscale > 0) filter += `grayscale(${grayscale}) `;
+    if (hueRotate !== 0) filter += `hue-rotate(${hueRotate}deg) `;
+    if (invert > 0) filter += `invert(${invert}) `;
+    if (opacity !== 1) filter += `opacity(${opacity}) `;
+    if (saturate !== 1) filter += `saturate(${saturate}) `;
+    if (sepia > 0) filter += `sepia(${sepia}) `;
+    return filter.trim() || "none";
+  }, []);
 
 
   // Blinking cursor effect
@@ -43,7 +70,9 @@ function PhotoCaptureContent() {
     invert: "Negative",
     blur: "Soft Focus",
     brightness: "Bright",
-    vintage: "Vintage"
+    vintage: "Vintage",
+    film: "Film Noir",
+    custom: "Custom"
   };
 
   const filterIcons = {
@@ -53,7 +82,9 @@ function PhotoCaptureContent() {
     invert: Zap,
     blur: Droplet,
     brightness: Sun,
-    vintage: Mountain
+    vintage: Mountain,
+    film: Zap,
+    custom: Sliders
   };
 
   // Filter CSS styles
@@ -64,7 +95,8 @@ function PhotoCaptureContent() {
     invert: { filter: "invert(0.8)" },
     blur: { filter: "blur(1px) brightness(1.1)" },
     brightness: { filter: "brightness(1.3) contrast(1.1)" },
-    vintage: { filter: "sepia(0.3) contrast(1.1) brightness(0.9) saturate(1.5)" }
+    vintage: { filter: "sepia(0.3) contrast(1.1) brightness(0.9) saturate(1.5)" },
+    film: { filter: "blur(1px) saturate(0.7) contrast(1.5) brightness(1.2)" }
   };
 
   // Retrieve number of shots from URL parameters
@@ -87,11 +119,14 @@ function PhotoCaptureContent() {
     if (webcamRef.current) {
       const imageSrc = webcamRef.current.getScreenshot();
       if (imageSrc) {
-        setCapturedImages((prev) => [...prev, { src: imageSrc, filter: selectedFilter }]);
+        const filterToStore = selectedFilter === 'custom' 
+          ? generateCustomFilterString(customFilterValues) 
+          : selectedFilter;
+        setCapturedImages((prev) => [...prev, { src: imageSrc, filter: filterToStore }]);
       }
     }
     setIsCapturing(false);
-  }, [selectedFilter]);
+  }, [selectedFilter, customFilterValues, generateCustomFilterString]);
 
   // Function to take a mock photo when camera is broken
   const takeMockPhoto = () => {
@@ -120,7 +155,10 @@ function PhotoCaptureContent() {
     ctx.stroke();
     
     const mockImageSrc = canvas.toDataURL('image/png');
-    setCapturedImages((prev) => [...prev, { src: mockImageSrc, filter: selectedFilter }]);
+    const filterToStore = selectedFilter === 'custom' 
+      ? generateCustomFilterString(customFilterValues) 
+      : selectedFilter;
+    setCapturedImages((prev) => [...prev, { src: mockImageSrc, filter: filterToStore }]);
   };
 
   // Countdown logic - Fixed dependency array to include takePhoto
@@ -171,31 +209,58 @@ function PhotoCaptureContent() {
 
   const handleGenerateBackground = async () => {
     try {
-      // Apply the selected filter to all captured images
+      // Use each image's own selected filter instead of the current global selection
       const filteredImages = await Promise.all(
         capturedImages.map(async (image) => {
-          const img = document.createElement('img'); // Use document.createElement
+          const img = document.createElement('img');
           img.src = image.src;
 
-          // Wait for the image to load
           await new Promise((resolve) => {
             img.onload = resolve;
           });
 
-          // Create a canvas and apply the filter
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
 
-          // Apply the selected filter
-          ctx.filter = getFilterStyle(selectedFilter);
+          // Apply the filter that was active when THIS photo was taken
+          ctx.filter = getFilterStyle(image.filter);
           ctx.drawImage(img, 0, 0);
 
-          // Convert the filtered image back to a data URL
+          // Handle special overlays for "Film" filter
+          if (image.filter === 'film') {
+            // Draw vignette
+            const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, Math.sqrt((canvas.width/2)**2 + (canvas.height/2)**2));
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.43)'); 
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw tint
+            ctx.fillStyle = 'rgba(151, 37, 85, 0.31)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw noise
+            try {
+              const noiseImg = new window.Image();
+              noiseImg.crossOrigin = "anonymous";
+              noiseImg.src = 'https://i.ibb.co/vJt5HSh/noisy-texture-300x300-o10-d10-c-a82851-t1.png';
+              await new Promise((resolve, reject) => {
+                noiseImg.onload = resolve;
+                noiseImg.onerror = reject;
+              });
+              const pattern = ctx.createPattern(noiseImg, 'repeat');
+              ctx.fillStyle = pattern;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } catch (e) {
+              console.warn("Failed to load noise texture", e);
+            }
+          }
+
           const filteredImageSrc = canvas.toDataURL('image/png');
 
-          return { src: filteredImageSrc, filter: selectedFilter };
+          return { src: filteredImageSrc, filter: image.filter };
         })
       );
 
@@ -213,6 +278,9 @@ function PhotoCaptureContent() {
   };
 
   const getFilterStyle = (filter) => {
+    if (!filter) return 'none';
+    if (filter.includes('(')) return filter; // Custom generated string
+    
     switch (filter) {
       case 'grayscale':
         return 'grayscale(1)';
@@ -226,6 +294,8 @@ function PhotoCaptureContent() {
         return 'brightness(1.3) contrast(1.1)';
       case 'vintage':
         return 'sepia(0.3) contrast(1.1) brightness(0.9) saturate(1.5)';
+      case 'film':
+        return 'blur(1px) saturate(0.7) contrast(1.5) brightness(1.2)';
       default:
         return 'none';
     }
@@ -474,36 +544,106 @@ function PhotoCaptureContent() {
         {/* Main Content Area */}
         <div className="w-full flex flex-col md:flex-row gap-4 md:gap-6">
           {/* Enhanced Filters - Vertical on the left */}
-          <div className="w-full md:w-1/6 bg-white rounded-xl p-4 shadow-sm h-min border border-gray-100">
-            <div className="flex items-center mb-3">
-              <Sliders size={16} className="mr-2 text-blue-500" />
-              <h3 className="font-normal text-sm text-gray-700">Filters</h3>
+          <div className="w-full md:w-1/4 bg-white rounded-xl p-4 shadow-sm h-min border border-gray-100">
+            <div className="flex items-center mb-4 p-1 bg-gray-100 rounded-lg">
+              <button
+                onClick={() => setFilterTab("presets")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${filterTab === "presets" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Presets
+              </button>
+              <button
+                onClick={() => setFilterTab("adjust")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${filterTab === "adjust" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Adjust
+              </button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(filters).map(([key, name]) => {
-                const FilterIcon = filterIcons[key];
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setSelectedFilter(key)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-lg transition-all ${selectedFilter === key
-                      ? "bg-blue-50 text-blue-600 border border-blue-200"
-                      : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-transparent"
-                      }`}
+
+            {filterTab === "presets" ? (
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(filters).map(([key, name]) => {
+                  if (key === 'custom') return null; // Don't show custom in presets
+                  const FilterIcon = filterIcons[key];
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedFilter(key)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all ${selectedFilter === key
+                        ? "bg-blue-50 text-blue-600 border border-blue-200"
+                        : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-transparent"
+                        }`}
+                    >
+                      <FilterIcon
+                        size={16}
+                        className={`mb-1 ${selectedFilter === key ? "text-blue-500" : "text-gray-500"}`}
+                      />
+                      <span className="text-[10px] truncate w-full text-center">{name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] font-bold text-gray-800 uppercase tracking-wider">Manual Controls</h4>
+                  <button 
+                    onClick={() => {
+                      setSelectedFilter("custom");
+                      setFilterTab("adjust");
+                    }}
+                    className={`text-[10px] px-2 py-0.5 rounded ${selectedFilter === 'custom' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}
                   >
-                    <FilterIcon
-                      size={16}
-                      className={`mb-1 ${selectedFilter === key ? "text-blue-500" : "text-gray-500"}`}
-                    />
-                    <span className="text-xs">{name}</span>
+                    Activate
                   </button>
-                );
-              })}
-            </div>
+                </div>
+                
+                {[
+                  { name: 'blur', label: 'Blur', min: 0, max: 10, step: 0.1, unit: 'px' },
+                  { name: 'brightness', label: 'Brightness', min: 0, max: 2, step: 0.1, unit: '' },
+                  { name: 'contrast', label: 'Contrast', min: 0, max: 2, step: 0.1, unit: '' },
+                  { name: 'grayscale', label: 'Grayscale', min: 0, max: 1, step: 0.1, unit: '' },
+                  { name: 'hueRotate', label: 'Hue', min: 0, max: 360, step: 1, unit: '°' },
+                  { name: 'invert', label: 'Invert', min: 0, max: 1, step: 0.1, unit: '' },
+                  { name: 'opacity', label: 'Opacity', min: 0, max: 1, step: 0.1, unit: '' },
+                  { name: 'saturate', label: 'Saturate', min: 0, max: 2, step: 0.1, unit: '' },
+                  { name: 'sepia', label: 'Sepia', min: 0, max: 1, step: 0.1, unit: '' },
+                ].map((f) => (
+                  <div key={f.name} className="flex flex-col gap-1">
+                    <div className="flex justify-between text-[10px] text-gray-500 font-medium">
+                      <span>{f.label}</span>
+                      <span>{customFilterValues[f.name]}{f.unit}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={f.min}
+                      max={f.max}
+                      step={f.step}
+                      value={customFilterValues[f.name]}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setCustomFilterValues(prev => ({ ...prev, [f.name]: val }));
+                        setSelectedFilter("custom"); // Auto-activate on change
+                      }}
+                      className="w-full h-1 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    />
+                  </div>
+                ))}
+                
+                <button 
+                  onClick={() => setCustomFilterValues({
+                    blur: 0, brightness: 1, contrast: 1, grayscale: 0, hueRotate: 0, invert: 0, opacity: 1, saturate: 1, sepia: 0
+                  })}
+                  className="w-full py-1.5 mt-2 bg-gray-50 text-gray-500 rounded text-[10px] font-bold hover:bg-gray-100 transition-colors uppercase"
+                >
+                  Reset Adjustments
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Camera View */}
-          <div className="w-full md:w-1/2 flex flex-col">
+          <div className="w-full md:w-5/12 flex flex-col">
             {cameraError ? (
               <div className="flex flex-col h-full">
                 <div className="relative aspect-video bg-gray-100 rounded-xl flex flex-col items-center justify-center border-2 border-gray-200">
@@ -566,9 +706,29 @@ function PhotoCaptureContent() {
                     onUserMediaError={handleCameraError}
                     style={{
                       transform: "scaleX(-1)",
-                      ...filterStyles[selectedFilter]
+                      filter: selectedFilter === 'custom' 
+                        ? generateCustomFilterString(customFilterValues) 
+                        : getFilterStyle(selectedFilter)
                     }}
                   />
+
+                  {/* Special Overlays for "Film Noir" */}
+                  {selectedFilter === 'film' && (
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-lg">
+                      {/* Vignette */}
+                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.43)_100%)]" />
+                      {/* Pinkish Tint */}
+                      <div className="absolute inset-0 bg-[#9725]/30" />
+                      {/* Noise Texture */}
+                      <div 
+                        className="absolute inset-0 opacity-20 mix-blend-overlay"
+                        style={{ 
+                          backgroundImage: 'url(https://i.ibb.co/vJt5HSh/noisy-texture-300x300-o10-d10-c-a82851-t1.png)',
+                          backgroundRepeat: 'repeat'
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {/* Capture count indicator at the top */}
                   <div className="absolute top-3 right-3 bg-black bg-opacity-50 backdrop-blur-sm px-3 py-1 rounded-full text-white text-xs">
@@ -662,11 +822,26 @@ function PhotoCaptureContent() {
                         fill
                         style={{
                           objectFit: "cover",
-                          ...filterStyles[image.filter],
+                          filter: image.filter?.includes('(') ? image.filter : (filterStyles[image.filter]?.filter || 'none'),
                           transform: "scaleX(-1)" // Mirror the captured photos
                         }}
                         priority
                       />
+                      
+                      {/* Overlay for Film Noir in Gallery */}
+                      {image.filter === 'film' && (
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.43)_100%)]" />
+                          <div className="absolute inset-0 bg-[#9725]/30" />
+                          <div 
+                            className="absolute inset-0 opacity-20 mix-blend-overlay"
+                            style={{ 
+                              backgroundImage: 'url(https://i.ibb.co/vJt5HSh/noisy-texture-300x300-o10-d10-c-a82851-t1.png)',
+                              backgroundRepeat: 'repeat'
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="absolute top-2 left-2 bg-black bg-opacity-50 backdrop-blur-sm text-white text-xs px-2 py-0.5 rounded-full">
                       #{index + 1}

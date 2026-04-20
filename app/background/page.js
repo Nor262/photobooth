@@ -301,8 +301,8 @@ function BackgroundContent() {
       if (savedFormat === "strip") setStripWidth(320);
       else setStripWidth(500);
     } else {
-      // Fallback/Default: Determine format: 1, 2, 6, 8 -> postcard (4x6). Others -> strip (2x4).
-      const isPostcard = [1, 2, 6, 8].includes(images.length);
+      // Fallback/Default: Determine format: 1, 2, 4, 6, 8 -> postcard (4x6). Others -> strip (2x4).
+      const isPostcard = [1, 2, 4, 6, 8].includes(images.length);
       setPrintFormat(isPostcard ? "postcard" : "strip");
     }
 
@@ -654,7 +654,8 @@ function BackgroundContent() {
     invert: { filter: "invert(0.8)" },
     blur: { filter: "blur(1px) brightness(1.1)" },
     brightness: { filter: "brightness(1.3) contrast(1.1)" },
-    vintage: { filter: "sepia(0.3) contrast(1.1) brightness(0.9) saturate(1.5)" }
+    vintage: { filter: "sepia(0.3) contrast(1.1) brightness(0.9) saturate(1.5)" },
+    film: { filter: "blur(1px) saturate(0.7) contrast(1.5) brightness(1.2)" }
   };
 
   const handleCustomColorChange = (e) => {
@@ -679,8 +680,12 @@ function BackgroundContent() {
       const imagesWithFilters = photoStripRef.current.querySelectorAll("img[data-filter]");
       imagesWithFilters.forEach((img) => {
         const filterType = img.getAttribute("data-filter");
-        if (filterType && filterStyles[filterType]) {
-          img.style.filter = filterStyles[filterType].filter; // Apply filter inline
+        if (filterType) {
+          if (filterType.includes('(')) {
+            img.style.filter = filterType;
+          } else if (filterStyles[filterType]) {
+            img.style.filter = filterStyles[filterType].filter;
+          }
         }
       });
 
@@ -1421,13 +1426,26 @@ function BackgroundContent() {
                                 src={image.src}
                                 alt={`Photo ${index + 1}`}
                                 fill
-                                style={{
-                                  objectFit: "cover",
-                                  ...filterStyles[image.filter],
-                                  transform: "scaleX(-1)"
-                                }}
+                                  style={{
+                                    objectFit: "cover",
+                                    filter: image.filter?.includes('(') ? image.filter : (filterStyles[image.filter]?.filter || 'none'),
+                                    transform: "scaleX(-1)"
+                                  }}
                                 data-filter={image.filter}
                               />
+                              {image.filter === 'film' && (
+                                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.43)_100%)]" />
+                                  <div className="absolute inset-0 bg-[#9725]/30" />
+                                  <div 
+                                    className="absolute inset-0 opacity-20 mix-blend-overlay"
+                                    style={{ 
+                                      backgroundImage: 'url(https://i.ibb.co/vJt5HSh/noisy-texture-300x300-o10-d10-c-a82851-t1.png)',
+                                      backgroundRepeat: 'repeat'
+                                    }}
+                                  />
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -1543,11 +1561,24 @@ function BackgroundContent() {
                             fill
                             style={{
                               objectFit: "cover",
-                              ...filterStyles[image.filter],
+                              filter: image.filter?.includes('(') ? image.filter : (filterStyles[image.filter]?.filter || 'none'),
                               transform: "scaleX(-1)" // Keep consistent with camera view
                             }}
                             data-filter={image.filter}
                           />
+                          {image.filter === 'film' && (
+                            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.43)_100%)]" />
+                              <div className="absolute inset-0 bg-[#9725]/30" />
+                              <div 
+                                className="absolute inset-0 opacity-20 mix-blend-overlay"
+                                style={{ 
+                                  backgroundImage: 'url(https://i.ibb.co/vJt5HSh/noisy-texture-300x300-o10-d10-c-a82851-t1.png)',
+                                  backgroundRepeat: 'repeat'
+                                }}
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
