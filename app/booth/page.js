@@ -370,7 +370,7 @@ export default function BoothSelection() {
 
         {/* Print Format Selection */}
         <motion.div variants={fadeIn} className="mb-8 w-full">
-          <h3 className="text-sm font-medium text-gray-700 mb-4 text-center uppercase tracking-wider">Kích thước in</h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-4 text-center uppercase tracking-wider">Choose printing size</h3>
           <div className="grid grid-cols-1 gap-3">
             <button
               onClick={() => setPrintFormat("strip")}
