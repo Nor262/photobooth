@@ -34,6 +34,9 @@ function PhotoCaptureContent() {
     sepia: 0
   });
   const [filterTab, setFilterTab] = useState("presets"); // "presets" or "adjust"
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [lastCapturedImage, setLastCapturedImage] = useState(null);
+  const [previewCountdown, setPreviewCountdown] = useState(null);
 
   const generateCustomFilterString = useCallback((values) => {
     const { blur, brightness, contrast, grayscale, hueRotate, invert, opacity, saturate, sepia } = values;
@@ -120,7 +123,9 @@ function PhotoCaptureContent() {
         const filterToStore = selectedFilter === 'custom' 
           ? generateCustomFilterString(customFilterValues) 
           : selectedFilter;
-        setCapturedImages((prev) => [...prev, { src: imageSrc, filter: filterToStore }]);
+        setLastCapturedImage({ src: imageSrc, filter: filterToStore });
+        setIsPreviewing(true);
+        setPreviewCountdown(10);
       }
     }
     setIsCapturing(false);
@@ -156,7 +161,10 @@ function PhotoCaptureContent() {
     const filterToStore = selectedFilter === 'custom' 
       ? generateCustomFilterString(customFilterValues) 
       : selectedFilter;
-    setCapturedImages((prev) => [...prev, { src: mockImageSrc, filter: filterToStore }]);
+    
+    setLastCapturedImage({ src: mockImageSrc, filter: filterToStore });
+    setIsPreviewing(true);
+    setPreviewCountdown(10);
   };
 
   // Countdown logic - Fixed dependency array to include takePhoto
@@ -167,7 +175,7 @@ function PhotoCaptureContent() {
     }
   }, [countdown, takePhoto]);
 
-  const startCountdown = () => {
+  const startCountdown = useCallback(() => {
     if (!isCapturing && capturedImages.length < shots) {
       setIsCapturing(true);
       let count = 3;
@@ -183,7 +191,42 @@ function PhotoCaptureContent() {
         });
       }, 1000);
     }
+  }, [isCapturing, capturedImages.length, shots]);
+
+  const handleContinue = useCallback(() => {
+    if (lastCapturedImage) {
+      const updatedImages = [...capturedImages, lastCapturedImage];
+      setCapturedImages(updatedImages);
+      setLastCapturedImage(null);
+      setIsPreviewing(false);
+      setPreviewCountdown(null);
+      
+      // Automatically start next countdown if not finished
+      if (updatedImages.length < shots) {
+        setTimeout(startCountdown, 1500);
+      }
+    }
+  }, [lastCapturedImage, capturedImages, shots, startCountdown]);
+
+  const handleRetake = () => {
+    setLastCapturedImage(null);
+    setIsPreviewing(false);
+    setPreviewCountdown(null);
+    setTimeout(startCountdown, 500);
   };
+
+  // Preview countdown effect
+  useEffect(() => {
+    let timer;
+    if (isPreviewing && previewCountdown > 0) {
+      timer = setInterval(() => {
+        setPreviewCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (isPreviewing && previewCountdown === 0) {
+      handleContinue();
+    }
+    return () => clearInterval(timer);
+  }, [isPreviewing, previewCountdown, handleContinue]);
 
   // Watermark animation
   const watermarkVariants = {
@@ -659,8 +702,21 @@ function PhotoCaptureContent() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-center gap-3">
-                  {!showGenerateButton ? (
+                <div className="mt-4 flex justify-center gap-3 min-h-[44px]">
+                  {showGenerateButton ? (
+                    <motion.button
+                      key="generate-btn-mock"
+                      onClick={handleGenerateBackground}
+                      className="flex items-center px-6 py-2.5 bg-green-500 text-white rounded-full shadow-md hover:bg-green-600 transition"
+                      whileHover={{ y: -2, boxShadow: "0 4px 12px rgba(34, 197, 94, 0.2)" }}
+                      whileTap={{ y: 0 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <ImageIcon size={18} className="mr-2" />
+                      Generate Background
+                    </motion.button>
+                  ) : (!isPreviewing && !isCapturing && (
                     <motion.button
                       key="capture-btn"
                       onClick={takeMockPhoto}
@@ -670,20 +726,9 @@ function PhotoCaptureContent() {
                       whileTap={{ y: 0 }}
                     >
                       <Camera size={18} className="mr-2" />
-                      {capturedImages.length >= shots ? "Done" : "Mock Capture"}
+                      {capturedImages.length >= shots ? "Done" : "Start Mock Sequence"}
                     </motion.button>
-                  ) : (
-                    <motion.button
-                      key="generate-btn-mock"
-                      onClick={handleGenerateBackground}
-                      className="flex items-center px-6 py-2.5 bg-green-500 text-white rounded-full shadow-md hover:bg-green-600 transition"
-                      whileHover={{ y: -2, boxShadow: "0 4px 12px rgba(34, 197, 94, 0.2)" }}
-                      whileTap={{ y: 0 }}
-                    >
-                      <ImageIcon size={18} className="mr-2" />
-                      Generate Background
-                    </motion.button>
-                  )}
+                  ))}
                 </div>
               </div>
             ) : (
@@ -761,8 +806,23 @@ function PhotoCaptureContent() {
                 </div>
 
                 {/* Take Photo button moved below the camera view */}
-                <div className="mt-4 flex justify-center gap-3">
-                  {!showGenerateButton ? (
+                <div className="mt-4 flex justify-center gap-3 min-h-[44px]">
+                  {showGenerateButton ? (
+                    <motion.button
+                      key="generate-btn-main"
+                      onClick={handleGenerateBackground}
+                      className="flex items-center px-6 py-2.5 bg-green-500 text-white rounded-full shadow-md hover:bg-blue-600 transition"
+                      whileHover={{ y: -2, boxShadow: "0 4px 12px rgba(34, 197, 94, 0.2)" }}
+                      whileTap={{ y: 0 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <ImageIcon size={18} className="mr-2" />
+                      Generate Background
+                      <div className="flex items-center ml-1">
+                      </div>
+                    </motion.button>
+                  ) : (!isPreviewing && !isCapturing && (
                     <motion.button
                       key="capture-btn-main"
                       onClick={startCountdown}
@@ -772,24 +832,11 @@ function PhotoCaptureContent() {
                       whileTap={{ y: 0 }}
                     >
                       <Camera size={18} className="mr-2" />
-                      {capturedImages.length >= shots ? "Done" : "Take Photo"}
+                      {capturedImages.length >= shots ? "Done" : "Start Sequence"}
                       <div className="flex items-center ml-1">
                       </div>
                     </motion.button>
-                  ) : (
-                    <motion.button
-                      key="generate-btn-main"
-                      onClick={handleGenerateBackground}
-                      className="flex items-center px-6 py-2.5 bg-green-500 text-white rounded-full shadow-md hover:bg-blue-600 transition"
-                      whileHover={{ y: -2, boxShadow: "0 4px 12px rgba(34, 197, 94, 0.2)" }}
-                      whileTap={{ y: 0 }}
-                    >
-                      <ImageIcon size={18} className="mr-2" />
-                      Generate Background
-                      <div className="flex items-center ml-1">
-                      </div>
-                    </motion.button>
-                  )}
+                  ))}
                 </div>
               </>
             )}
@@ -869,6 +916,81 @@ function PhotoCaptureContent() {
             )}
           </div>
         </div>
+
+        {/* Preview Popup */}
+        {isPreviewing && lastCapturedImage && (
+          <motion.div 
+            className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-md flex items-center justify-center z-[100] p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <motion.div 
+              className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full flex flex-col"
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+            >
+              <div className="p-6 flex flex-col items-center">
+                <h3 className="text-xl font-medium text-gray-800 mb-4">Preview Shot #{capturedImages.length + 1}</h3>
+                
+                <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-inner">
+                  <Image
+                    src={lastCapturedImage.src}
+                    alt="Preview"
+                    fill
+                    style={{
+                      objectFit: "cover",
+                      filter: lastCapturedImage.filter?.includes('(') ? lastCapturedImage.filter : (filterStyles[lastCapturedImage.filter]?.filter || 'none'),
+                      transform: "scaleX(-1)"
+                    }}
+                  />
+                  
+                  {lastCapturedImage.filter === 'film' && (
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.43)_100%)]" />
+                      <div className="absolute inset-0 bg-[#9725]/30" />
+                      <div 
+                        className="absolute inset-0 opacity-20 mix-blend-overlay"
+                        style={{ 
+                          backgroundImage: 'url(https://i.ibb.co/vJt5HSh/noisy-texture-300x300-o10-d10-c-a82851-t1.png)',
+                          backgroundRepeat: 'repeat'
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-bold">
+                    Next in {previewCountdown}s
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 w-full mt-8">
+                  <button
+                    onClick={handleRetake}
+                    className="flex items-center justify-center gap-2 py-4 px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold transition-all active:scale-95"
+                  >
+                    <RefreshCw size={20} />
+                    Retake
+                  </button>
+                  <button
+                    onClick={handleContinue}
+                    className="flex items-center justify-center gap-2 py-4 px-6 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-200 active:scale-95"
+                  >
+                    Continue
+                  </button>
+                </div>
+              </div>
+              
+              <div className="h-1.5 bg-gray-100 w-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-blue-500"
+                  initial={{ width: "100%" }}
+                  animate={{ width: "0%" }}
+                  transition={{ duration: 10, ease: "linear" }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
 
         {/* Instructions */}
         <div className="mt-6 text-xs text-gray-500 max-w-2xl text-center bg-gray-50 p-3 rounded-lg">
