@@ -2,17 +2,15 @@
 
 import { useEffect, useRef, useState, Suspense, useCallback } from "react";
 import Webcam from "react-webcam";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Camera, ArrowLeft, Sliders, RefreshCw, Droplet, Sun, Contrast, Clock, Zap, Mountain, Image as LucideImage } from "lucide-react";
+import { Camera, ArrowLeft, Sliders, RefreshCw, Droplet, Sun, Contrast, Clock, Zap, Mountain, Image as ImageIcon } from "lucide-react";
 import { motion } from 'framer-motion';
 
 // Create a client component to safely use useSearchParams
 function PhotoCaptureContent() {
   const webcamRef = useRef(null);
   const router = useRouter();
-  // Import useSearchParams inside a client component
-  const { useSearchParams } = require("next/navigation");
   const searchParams = useSearchParams();
   const [shots, setShots] = useState(1);
   const [capturedImages, setCapturedImages] = useState([]);
@@ -561,7 +559,7 @@ function PhotoCaptureContent() {
             </div>
 
             {filterTab === "presets" ? (
-              <div className="grid grid-cols-3 gap-2">
+              <div key="presets-grid" className="grid grid-cols-3 gap-2">
                 {Object.entries(filters).map(([key, name]) => {
                   if (key === 'custom') return null; // Don't show custom in presets
                   const FilterIcon = filterIcons[key];
@@ -584,7 +582,7 @@ function PhotoCaptureContent() {
                 })}
               </div>
             ) : (
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+              <div key="adjust-panel" className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-[10px] font-bold text-gray-800 uppercase tracking-wider">Manual Controls</h4>
                   <button 
@@ -664,6 +662,7 @@ function PhotoCaptureContent() {
                 <div className="mt-4 flex justify-center gap-3">
                   {!showGenerateButton ? (
                     <motion.button
+                      key="capture-btn"
                       onClick={takeMockPhoto}
                       disabled={capturedImages.length >= shots}
                       className="flex items-center px-6 py-2.5 bg-blue-500 text-white rounded-full shadow-md hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -675,12 +674,13 @@ function PhotoCaptureContent() {
                     </motion.button>
                   ) : (
                     <motion.button
+                      key="generate-btn-mock"
                       onClick={handleGenerateBackground}
                       className="flex items-center px-6 py-2.5 bg-green-500 text-white rounded-full shadow-md hover:bg-green-600 transition"
                       whileHover={{ y: -2, boxShadow: "0 4px 12px rgba(34, 197, 94, 0.2)" }}
                       whileTap={{ y: 0 }}
                     >
-                      <LucideImage size={18} className="mr-2" />
+                      <ImageIcon size={18} className="mr-2" />
                       Generate Background
                     </motion.button>
                   )}
@@ -764,6 +764,7 @@ function PhotoCaptureContent() {
                 <div className="mt-4 flex justify-center gap-3">
                   {!showGenerateButton ? (
                     <motion.button
+                      key="capture-btn-main"
                       onClick={startCountdown}
                       disabled={isCapturing || capturedImages.length >= shots}
                       className="flex items-center px-6 py-2.5 bg-blue-500 text-white rounded-full shadow-md hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -777,12 +778,13 @@ function PhotoCaptureContent() {
                     </motion.button>
                   ) : (
                     <motion.button
+                      key="generate-btn-main"
                       onClick={handleGenerateBackground}
                       className="flex items-center px-6 py-2.5 bg-green-500 text-white rounded-full shadow-md hover:bg-blue-600 transition"
                       whileHover={{ y: -2, boxShadow: "0 4px 12px rgba(34, 197, 94, 0.2)" }}
                       whileTap={{ y: 0 }}
                     >
-                      <LucideImage size={18} className="mr-2" />
+                      <ImageIcon size={18} className="mr-2" />
                       Generate Background
                       <div className="flex items-center ml-1">
                       </div>
