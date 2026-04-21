@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
-import { ArrowLeft, Download, Share, Calendar, Plus, Sliders, Move, Trash, Trash2, MousePointer, Palette, Maximize, Minimize, Image, FileImage, Sticker, Pencil, Eraser, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, Download, Share, Calendar, Plus, Sliders, Move, Trash, Trash2, MousePointer, Palette, Maximize, Minimize, Image, FileImage, Sticker, Pencil, Eraser, RotateCcw, X, FlipHorizontal } from "lucide-react";
 import html2canvas from 'html2canvas';
 import NextImage from "next/image"; // Import Next.js Image component
 
@@ -1361,7 +1361,8 @@ function BackgroundContent() {
                               y: 100,
                               scaleX: 1,
                               scaleY: 1,
-                              rotate: 0
+                              rotate: 0,
+                              flipped: false
                             };
                             setStickers(prev => [...prev, newSticker]);
                             setSelectedEditElement(`sticker-${newSticker.id}`);
@@ -1727,7 +1728,7 @@ function BackgroundContent() {
                       style={{
                         left: `${sticker.x}px`,
                         top: `${sticker.y}px`,
-                        transform: `translate(-50%, -50%) rotate(${rotate}deg) scale(${sticker.scaleX}, ${sticker.scaleY})`,
+                        transform: `translate(-50%, -50%) rotate(${rotate}deg) scale(${Math.abs(sticker.scaleX)}, ${Math.abs(sticker.scaleY)})`,
                         cursor: 'move',
                         fontSize: '48px',
                         userSelect: 'none',
@@ -1739,7 +1740,12 @@ function BackgroundContent() {
                       }}
                       onPointerDown={(e) => handleStickerPointerDown(e, sticker.id, 'move')}
                     >
-                      {sticker.emoji}
+                      <div style={{
+                        transform: `scaleX(${sticker.flipped ? -1 : 1})`,
+                        display: 'inline-block'
+                      }}>
+                        {sticker.emoji}
+                      </div>
 
                       {isSelected && (
                         <>
@@ -1813,6 +1819,32 @@ function BackgroundContent() {
                             }}
                           >
                             <X size={12} color="white" />
+                          </div>
+
+                          {/* Flip handle - top left */}
+                          <div
+                            className="absolute flex items-center justify-center hover:scale-110 transition-transform"
+                            style={{
+                              top: '-10px',
+                              left: '-10px',
+                              width: '22px',
+                              height: '22px',
+                              background: '#8b5cf6', // purple color to distinguish
+                              borderRadius: '50%',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                              border: '2px solid white',
+                              pointerEvents: 'auto',
+                              cursor: 'pointer',
+                              touchAction: 'none',
+                              zIndex: 10
+                            }}
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              setStickers(prev => prev.map(s => s.id === sticker.id ? { ...s, flipped: !s.flipped } : s));
+                            }}
+                            title="Flip Horizontal"
+                          >
+                            <FlipHorizontal size={12} color="white" />
                           </div>
                         </>
                       )}
