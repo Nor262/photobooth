@@ -214,6 +214,7 @@ function BackgroundContent() {
   // Adjustments state
   const [frameTransform, setFrameTransform] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
   const [imageTransforms, setImageTransforms] = useState([]);
+  const [imagePans, setImagePans] = useState([]);
   const [selectedEditElement, setSelectedEditElement] = useState('frame');
 
   // Drag and resize state
@@ -257,12 +258,12 @@ function BackgroundContent() {
 
     if (isComplete) {
       try {
-        // Retrieve the images from localStorage
         const storedImages = localStorage.getItem('photoBoothImages');
         if (storedImages) {
           const parsedImages = JSON.parse(storedImages);
           setImages(parsedImages);
           setImageTransforms(new Array(parsedImages.length).fill({ x: 0, y: 0, scaleX: 1, scaleY: 1 }));
+          setImagePans(new Array(parsedImages.length).fill({ x: 50, y: 50 }));
         } else {
           // Fallback to placeholder images if no stored images found
           const fallbacks = [
@@ -273,6 +274,7 @@ function BackgroundContent() {
           ];
           setImages(fallbacks);
           setImageTransforms(new Array(fallbacks.length).fill({ x: 0, y: 0, scaleX: 1, scaleY: 1 }));
+          setImagePans(new Array(fallbacks.length).fill({ x: 50, y: 50 }));
         }
       } catch (error) {
         console.error("Error retrieving images:", error);
@@ -367,6 +369,50 @@ function BackgroundContent() {
       initialTransform: { ...currentTransform },
       baseW: rect.width / currentTransform.scaleX,
       baseH: rect.height / currentTransform.scaleY
+    });
+  };
+
+  const handlePanPointerDown = (e, index) => {
+    if (customMode !== "custom") return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setDragState({
+      isDragging: true,
+      mode: 'pan',
+      type: 'image-pan',
+      index: index,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialTransform: imagePans[index] || { x: 50, y: 50 }
+    });
+  };
+
+  const moveImage = (index, direction) => {
+    if ((direction === -1 && index === 0) || (direction === 1 && index === images.length - 1)) return;
+    
+    setImages(prev => {
+      const newImages = [...prev];
+      const temp = newImages[index];
+      newImages[index] = newImages[index + direction];
+      newImages[index + direction] = temp;
+      return newImages;
+    });
+
+    setImagePans(prev => {
+      const newPans = [...prev];
+      const temp = newPans[index];
+      newPans[index] = newPans[index + direction];
+      newPans[index + direction] = temp;
+      return newPans;
+    });
+    
+    setImageTransforms(prev => {
+      const newTransforms = [...prev];
+      const temp = newTransforms[index];
+      newTransforms[index] = newTransforms[index + direction];
+      newTransforms[index + direction] = temp;
+      return newTransforms;
     });
   };
 
@@ -560,6 +606,25 @@ function BackgroundContent() {
       const dx = e.clientX - dragState.startX;
       const dy = e.clientY - dragState.startY;
 
+      if (dragState.mode === 'pan' && dragState.type === 'image-pan') {
+        setImagePans(prev => {
+          const newPans = [...prev];
+          // Use sensitivity factor for percentage translation (e.g. 1px = 0.5%)
+          // dx > 0 means drag right. We want image to visually shift right.
+          // Since image is flipped horizontally (scaleX(-1)), we shift the unscaled focal point in the opposite direction -> increase X%
+          const sensitivity = 0.5;
+          const newX = dragState.initialTransform.x + (dx * sensitivity);
+          const newY = dragState.initialTransform.y - (dy * sensitivity);
+          
+          newPans[dragState.index] = {
+            x: Math.max(0, Math.min(100, newX)),
+            y: Math.max(0, Math.min(100, newY))
+          };
+          return newPans;
+        });
+        return;
+      }
+
       let newTransform = { ...dragState.initialTransform };
 
       if (dragState.mode === 'move') {
@@ -640,9 +705,15 @@ function BackgroundContent() {
 
     window.addEventListener('mousemove', handlePointerMove);
     window.addEventListener('mouseup', handlePointerUp);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
     return () => {
       window.removeEventListener('mousemove', handlePointerMove);
       window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
     };
   }, [dragState, selectedEditElement]);
 
@@ -1090,6 +1161,40 @@ function BackgroundContent() {
                     </div>
 
                     <div className="space-y-3 pt-2 border-t border-gray-100">
+                      <div className="pb-4 border-b border-gray-100">
+                        <h3 className="text-xs font-medium mb-3 text-gray-700">Image Order</h3>
+                        <div className="space-y-2">
+                          {images.map((img, i) => (
+                            <div key={i} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 rounded overflow-hidden bg-gray-200 relative mr-3">
+                                  <NextImage src={img.src} alt={`img-${i}`} fill style={{objectFit:'cover', filter: img.filter?.includes('(') ? img.filter : (filterStyles[img.filter]?.filter || 'none'), transform: "scaleX(-1)"}} />
+                                </div>
+                                <span className="text-xs text-gray-600">Photo {i + 1}</span>
+                              </div>
+                              <div className="flex space-x-1">
+                                <button 
+                                  onClick={() => moveImage(i, -1)}
+                                  disabled={i === 0}
+                                  className="p-1.5 text-gray-500 rounded bg-white border border-gray-200 hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                                  title="Move Up"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                                </button>
+                                <button 
+                                  onClick={() => moveImage(i, 1)}
+                                  disabled={i === images.length - 1}
+                                  className="p-1.5 text-gray-500 rounded bg-white border border-gray-200 hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                                  title="Move Down"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
                       <RangeSlider
                         label="Strip Width"
                         value={stripWidth}
@@ -1422,15 +1527,17 @@ function BackgroundContent() {
                               height: '100%',
                               position: 'relative'
                             }}>
-                              <NextImage
-                                src={image.src}
-                                alt={`Photo ${index + 1}`}
-                                fill
-                                  style={{
-                                    objectFit: "cover",
-                                    filter: image.filter?.includes('(') ? image.filter : (filterStyles[image.filter]?.filter || 'none'),
-                                    transform: "scaleX(-1)"
-                                  }}
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  inset: 0,
+                                  backgroundImage: `url(${image.src})`,
+                                  backgroundSize: "cover",
+                                  backgroundPosition: "center",
+                                  backgroundRepeat: "no-repeat",
+                                  filter: image.filter?.includes('(') ? image.filter : (filterStyles[image.filter]?.filter || 'none'),
+                                  transform: "scaleX(-1)"
+                                }}
                                 data-filter={image.filter}
                               />
                               {image.filter === 'film' && (
@@ -1554,13 +1661,19 @@ function BackgroundContent() {
                         }}
                       >
                         {/* Using Next.js Image component instead of img for performance optimization */}
-                        <div className="relative w-full h-full">
-                          <NextImage
-                            src={image.src}
-                            alt={`Photo ${index + 1}`}
-                            fill
+                        <div 
+                          className="relative w-full h-full cursor-move"
+                          onPointerDown={(e) => handlePanPointerDown(e, index)}
+                        >
+                          <div
+                            draggable={false}
                             style={{
-                              objectFit: "cover",
+                              position: "absolute",
+                              inset: 0,
+                              backgroundImage: `url(${image.src})`,
+                              backgroundSize: "cover",
+                              backgroundPosition: `${imagePans[index]?.x ?? 50}% ${imagePans[index]?.y ?? 50}%`,
+                              backgroundRepeat: "no-repeat",
                               filter: image.filter?.includes('(') ? image.filter : (filterStyles[image.filter]?.filter || 'none'),
                               transform: "scaleX(-1)" // Keep consistent with camera view
                             }}
