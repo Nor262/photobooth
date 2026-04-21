@@ -178,7 +178,7 @@ function PhotoCaptureContent() {
   const startCountdown = useCallback(() => {
     if (!isCapturing && capturedImages.length < shots) {
       setIsCapturing(true);
-      let count = 3;
+      let count = 10;
       setCountdown(count);
 
       const timer = setInterval(() => {
